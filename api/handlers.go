@@ -1,59 +1,53 @@
 package api
 
 import (
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"net/http"
+
+	"github.com/CenturyLinkLabs/stevedore/job"
 )
 
 func listJobs(context context, responseWriter http.ResponseWriter, request *http.Request) {
-	var jobs []string
-	jobs, err := context.redis.Cmd("lrange", "jobs", 0, -1).List()
+	jobs, err := job.ListAll()
 	handleErr(err)
-
 	json.NewEncoder(responseWriter).Encode(jobs)
 }
 
 func createJob(context context, responseWriter http.ResponseWriter, request *http.Request) {
-	job := Job{ID: pseudoUUID()}
-	err := json.NewDecoder(request.Body).Decode(&job)
+	j := job.Job{}
+	err := json.NewDecoder(request.Body).Decode(&j)
 	handleErr(err)
 
-	context.redis.Cmd("rpush", "jobs", job.ID)
+	err = j.Save()
+	handleErr(err)
 
-	go ExecuteJob(&job)
-	json.NewEncoder(responseWriter).Encode(job)
+	go j.Execute()
+
+	json.NewEncoder(responseWriter).Encode(j)
 }
 
 func getJob(context context, responseWriter http.ResponseWriter, request *http.Request) {
+	j, err := job.GetByID(context.params["jobid"])
+	handleErr(err)
 
-	job := Job{}
-	job.ID = context.params["jobid"]
-
-	json.NewEncoder(responseWriter).Encode(job)
-}
-
-type jobLog struct {
-	Index int
-	Lines []string
+	json.NewEncoder(responseWriter).Encode(j)
 }
 
 func getJobLog(context context, responseWriter http.ResponseWriter, request *http.Request) {
 
 	jobID := context.params["jobid"]
 
-	lines, err := context.redis.Cmd("lrange", "job:"+jobID+":log", 0, -1).List()
+	log, err := job.GetJobLog(jobID)
 	handleErr(err)
 
-	log := jobLog{Lines: lines}
 	json.NewEncoder(responseWriter).Encode(log)
 }
 
-func pseudoUUID() (uuid string) {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
+func deleteJob(context context, responseWriter http.ResponseWriter, request *http.Request) {
+	jobID := context.params["jobid"]
+
+	err := job.DeleteJob(jobID)
 	handleErr(err)
 
-	return fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	responseWriter.WriteHeader(http.StatusNoContent)
 }

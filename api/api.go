@@ -1,27 +1,20 @@
 package api
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"github.com/fzzy/radix/extra/pool"
-	"github.com/fzzy/radix/redis"
-	"github.com/gorilla/mux"
 	"net/http"
 	"os"
-)
 
-var (
-	redisPool *pool.Pool
+	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 func init() {
 	log.SetLevel(log.DebugLevel)
-	redisPool, _ = pool.NewPool("tcp", "127.0.0.1:6379", 4)
 }
 
 type handler func(c context, w http.ResponseWriter, r *http.Request)
 
 type context struct {
-	redis  *redis.Client
 	params map[string]string
 }
 
@@ -37,6 +30,9 @@ func createRouter() (*mux.Router, error) {
 		"POST": {
 			"/jobs": createJob,
 		},
+		"DELETE": {
+			"/jobs/{jobid}": deleteJob,
+		},
 	}
 
 	for method, routes := range m {
@@ -46,14 +42,13 @@ func createRouter() (*mux.Router, error) {
 			localRoute := route
 			localFct := fct
 			wrap := func(w http.ResponseWriter, r *http.Request) {
-				redis, _ := redisPool.Get()
-				defer redisPool.Put(redis)
-				c := context{
-					redis:  redis,
-					params: mux.Vars(r),
-				}
+				c := context{params: mux.Vars(r)}
 
 				log.Infof("%s %s", r.Method, r.RequestURI)
+
+				if localMethod != "DELETE" {
+					w.Header().Set("Content-Type", "application/json")
+				}
 
 				localFct(c, w, r)
 			}
