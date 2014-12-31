@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/fzzy/radix/extra/pool"
 	"github.com/fzzy/radix/redis"
 )
@@ -17,7 +18,13 @@ var (
 )
 
 func init() {
-	rp, _ = pool.NewPool("tcp", "127.0.0.1:6379", 4)
+	pool, err := pool.NewPool("tcp", "127.0.0.1:6379", 4)
+	if err != nil {
+		log.Errorf("Error instantiating Redis pool: %s", err)
+		panic(err)
+	}
+
+	rp = pool
 }
 
 type JobAccessor interface {

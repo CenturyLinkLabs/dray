@@ -16,11 +16,13 @@ const (
 )
 
 var (
-	accessor JobAccessor
+	accessor         JobAccessor
+	containerFactory ContainerFactory
 )
 
 func init() {
 	accessor = &redisJobAccessor{}
+	containerFactory = &dockerContainerFactory{}
 }
 
 type Job struct {
@@ -71,36 +73,36 @@ func (job *Job) Execute() error {
 }
 
 func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
-
-	step := job.Steps[stepIndex]
 	stdOut := &bytes.Buffer{}
 	stdErr := &bytes.Buffer{}
+	step := job.Steps[stepIndex]
+	container := containerFactory.NewContainer(step.Source)
 
-	container, err := createContainer(step.Source)
+	err := container.Create()
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Container %s created", container.ID[0:12])
+	log.Debugf("Container %s created", container)
 
 	go func() {
-		attachContainer(container.ID, stdIn, stdOut, stdErr)
+		container.Attach(stdIn, stdOut, stdErr)
 		stdOut.Write([]byte{EOT, '\n'})
 	}()
 
-	err = startContainer(container.ID)
+	err = container.Start()
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Container %s started", container.ID[0:12])
+	log.Debugf("Container %s started", container)
 
 	output, err := job.captureOutput(stdOut)
-	log.Debugf("Container %s stopped", container.ID[0:12])
+	log.Debugf("Container %s stopped", container)
 
-	removeContainer(container.ID)
+	err = container.Remove()
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Container %s removed", container.ID[0:12])
+	log.Debugf("Container %s removed", container)
 
 	return output, nil
 }
