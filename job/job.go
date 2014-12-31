@@ -50,16 +50,16 @@ func GetByID(jobID string) (*Job, error) {
 	return accessor.Get(jobID)
 }
 
-func DeleteJob(jobID string) error {
-	return accessor.Delete(jobID)
-}
-
-func GetJobLog(jobID string) (*JobLog, error) {
-	return accessor.GetJobLog(jobID, 0)
-}
-
-func (job *Job) Save() error {
+func (job *Job) Create() error {
 	return accessor.Create(job)
+}
+
+func (job *Job) Delete() error {
+	return accessor.Delete(job.ID)
+}
+
+func (job *Job) GetLog(index int) (*JobLog, error) {
+	return accessor.GetJobLog(job.ID, index)
 }
 
 func (job *Job) Execute() error {

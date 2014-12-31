@@ -40,6 +40,12 @@ type JobAccessor interface {
 type redisJobAccessor struct {
 }
 
+type NotFoundError string
+
+func (s NotFoundError) Error() string {
+	return fmt.Sprintf("Cannot find job with ID %s", string(s))
+}
+
 func (*redisJobAccessor) All() ([]Job, error) {
 	jobs := []Job{}
 
@@ -57,7 +63,13 @@ func (*redisJobAccessor) All() ([]Job, error) {
 
 func (*redisJobAccessor) Get(jobID string) (*Job, error) {
 	job := Job{ID: jobID}
-	status, err := command("hgetall", jobKey(jobID)).Hash()
+	reply := command("hgetall", jobKey(jobID))
+
+	if len(reply.Elems) == 0 {
+		return nil, NotFoundError(jobID)
+	}
+
+	status, err := reply.Hash()
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"os"
 
@@ -12,10 +13,28 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type handler func(c context, w http.ResponseWriter, r *http.Request)
+type handler func(c context, w http.ResponseWriter)
 
 type context struct {
-	params map[string]string
+	request *http.Request
+}
+
+func (c *context) Params(key string) string {
+	return mux.Vars(c.request)[key]
+}
+
+func (c *context) Query(key string) string {
+	v := c.request.URL.Query()[key]
+
+	if len(v) == 0 {
+		return ""
+	}
+
+	return v[0]
+}
+
+func (c *context) Body() io.ReadCloser {
+	return c.request.Body
 }
 
 func createRouter() (*mux.Router, error) {
@@ -42,7 +61,7 @@ func createRouter() (*mux.Router, error) {
 			localRoute := route
 			localFct := fct
 			wrap := func(w http.ResponseWriter, r *http.Request) {
-				c := context{params: mux.Vars(r)}
+				c := context{request: r}
 
 				log.Infof("%s %s", r.Method, r.RequestURI)
 
@@ -50,7 +69,7 @@ func createRouter() (*mux.Router, error) {
 					w.Header().Set("Content-Type", "application/json")
 				}
 
-				localFct(c, w, r)
+				localFct(c, w)
 			}
 
 			router.Path("/v{version:[0-9.]+}" + localRoute).Methods(localMethod).HandlerFunc(wrap)
@@ -63,14 +82,11 @@ func createRouter() (*mux.Router, error) {
 
 func ListenAndServe() {
 	router, err := createRouter()
-	handleErr(err)
-	log.Infof("Server running on port 2000")
-	http.ListenAndServe(":2000", router)
-}
-
-func handleErr(err error) {
 	if err != nil {
 		log.Errorf("error:", err)
 		os.Exit(1)
 	}
+
+	log.Infof("Server running on port 2000")
+	http.ListenAndServe(":2000", router)
 }
