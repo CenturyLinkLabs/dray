@@ -3,6 +3,7 @@ package job
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 
@@ -33,8 +34,14 @@ type Job struct {
 }
 
 type JobStep struct {
-	Name   string `json:"name,omitempty"`
-	Source string `json:"source,omitempty"`
+	Name        string   `json:"name,omitempty"`
+	Source      string   `json:"source,omitempty"`
+	Environment []EnvVar `json:"environment,omitempty"`
+}
+
+type EnvVar struct {
+	Variable string `json:"variable"`
+	Value    string `json:"value"`
 }
 
 type JobLog struct {
@@ -76,10 +83,9 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	stdOut := &bytes.Buffer{}
 	stdErr := &bytes.Buffer{}
 	step := job.Steps[stepIndex]
-	container := containerFactory.NewContainer(step.Source)
+	container := containerFactory.NewContainer(step.Source, stringifyEnvironment(step.Environment))
 
-	err := container.Create()
-	if err != nil {
+	if err := container.Create(); err != nil {
 		return nil, err
 	}
 	log.Debugf("Container %s created", container)
@@ -89,17 +95,18 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 		stdOut.Write([]byte{EOT, '\n'})
 	}()
 
-	err = container.Start()
-	if err != nil {
+	if err := container.Start(); err != nil {
 		return nil, err
 	}
 	log.Debugf("Container %s started", container)
 
 	output, err := job.captureOutput(stdOut)
+	if err != nil {
+		return nil, err
+	}
 	log.Debugf("Container %s stopped", container)
 
-	err = container.Remove()
-	if err != nil {
+	if err := container.Remove(); err != nil {
 		return nil, err
 	}
 	log.Debugf("Container %s removed", container)
@@ -138,4 +145,15 @@ func (job *Job) captureOutput(r io.Reader) (io.Reader, error) {
 	}
 
 	return buffer, nil
+}
+
+func stringifyEnvironment(env []EnvVar) []string {
+	envStrings := []string{}
+
+	for _, v := range env {
+		s := fmt.Sprintf("%s=%s", v.Variable, v.Value)
+		envStrings = append(envStrings, s)
+	}
+
+	return envStrings
 }

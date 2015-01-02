@@ -32,25 +32,27 @@ type Container interface {
 }
 
 type ContainerFactory interface {
-	NewContainer(source string) Container
+	NewContainer(source string, env []string) Container
 }
 
 type dockerContainer struct {
 	ID     string
 	Source string
+	Env    []string
 }
 
 type dockerContainerFactory struct {
 }
 
-func (*dockerContainerFactory) NewContainer(source string) Container {
-	return &dockerContainer{Source: source}
+func (*dockerContainerFactory) NewContainer(source string, env []string) Container {
+	return &dockerContainer{Source: source, Env: env}
 }
 
 func (c *dockerContainer) Create() error {
 	opts := docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Image:     c.Source,
+			Env:       c.Env,
 			OpenStdin: true,
 			StdinOnce: true,
 		},
