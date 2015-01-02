@@ -71,12 +71,19 @@ func (job *Job) GetLog(index int) (*JobLog, error) {
 
 func (job *Job) Execute() error {
 	var capture io.Reader
+	var err error
 
 	for i := range job.Steps {
-		capture, _ = job.executeStep(i, capture)
+		capture, err = job.executeStep(i, capture)
+
+		if err != nil {
+			break
+		}
+
 		accessor.CompleteStep(job.ID)
 	}
-	return nil
+
+	return err
 }
 
 func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
