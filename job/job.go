@@ -70,7 +70,8 @@ func (job *Job) GetLog(index int) (*JobLog, error) {
 }
 
 func (job *Job) Execute() error {
-	var capture io.Reader
+	buffer := &bytes.Buffer{}
+	capture := io.Reader(buffer)
 	var err error
 
 	for i := range job.Steps {
