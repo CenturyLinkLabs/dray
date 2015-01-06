@@ -13,15 +13,14 @@ func TestListAll(t *testing.T) {
 	jobs := []Job{Job{Name: "foo"}}
 	err := errors.New("oops")
 
-	accessor = &testAccessor{
-		allFunc: func() ([]Job, error) {
-			return jobs, err
-		},
-	}
+	acc := &mockAccessor{}
+	acc.On("All").Return(jobs, err)
+	accessor = acc
 
 	resultJobs, resultErr := ListAll()
 	assert.Equal(t, jobs, resultJobs)
 	assert.Equal(t, err, resultErr)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestGetByID(t *testing.T) {
@@ -29,46 +28,40 @@ func TestGetByID(t *testing.T) {
 	job := Job{Name: "foo"}
 	err := errors.New("oops")
 
-	accessor = &testAccessor{
-		getFunc: func(jobID string) (*Job, error) {
-			assert.Equal(t, id, jobID)
-			return &job, err
-		},
-	}
+	acc := &mockAccessor{}
+	acc.On("Get", id).Return(&job, err)
+	accessor = acc
 
 	resultJob, resultErr := GetByID(id)
 	assert.Equal(t, &job, resultJob)
 	assert.Equal(t, err, resultErr)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestCreate(t *testing.T) {
 	job := &Job{Name: "foo"}
 	err := errors.New("oops")
 
-	accessor = &testAccessor{
-		createFunc: func(j *Job) error {
-			assert.Equal(t, j, job)
-			return err
-		},
-	}
+	acc := &mockAccessor{}
+	acc.On("Create", job).Return(err)
+	accessor = acc
 
 	resultErr := job.Create()
 	assert.Equal(t, err, resultErr)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestDelete(t *testing.T) {
 	job := &Job{ID: "123"}
 	err := errors.New("oops")
 
-	accessor = &testAccessor{
-		deleteFunc: func(jobID string) error {
-			assert.Equal(t, job.ID, jobID)
-			return err
-		},
-	}
+	acc := &mockAccessor{}
+	acc.On("Delete", job.ID).Return(err)
+	accessor = acc
 
 	resultErr := job.Delete()
 	assert.Equal(t, err, resultErr)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestGetLog(t *testing.T) {
@@ -77,17 +70,14 @@ func TestGetLog(t *testing.T) {
 	jobLog := &JobLog{Index: 3}
 	err := errors.New("oops")
 
-	accessor = &testAccessor{
-		getJobLogFunc: func(jobID string, logIndex int) (*JobLog, error) {
-			assert.Equal(t, job.ID, jobID)
-			assert.Equal(t, index, logIndex)
-			return jobLog, err
-		},
-	}
+	acc := &mockAccessor{}
+	acc.On("GetJobLog", job.ID, index).Return(jobLog, err)
+	accessor = acc
 
 	resultLog, resultErr := job.GetLog(index)
 	assert.Equal(t, jobLog, resultLog)
 	assert.Equal(t, err, resultErr)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestExecuteSuccess(t *testing.T) {
