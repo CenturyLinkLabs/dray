@@ -210,3 +210,40 @@ func TestExecuteContainerDeleteError(t *testing.T) {
 
 	container.Mock.AssertExpectations(t)
 }
+
+func TestExecuteOutputLogging(t *testing.T) {
+	output := "line of output"
+	jobStep := JobStep{
+		Name:        "Step1",
+		Source:      "foo/bar",
+		Environment: []EnvVar{},
+	}
+
+	job := &Job{
+		ID:    "123",
+		Steps: []JobStep{jobStep},
+	}
+
+	container := &mockContainer{output: output}
+	container.On("Create").Return(nil)
+	container.On("Attach",
+		mock.AnythingOfType("*bytes.Buffer"),
+		mock.AnythingOfType("*bytes.Buffer"),
+		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
+	container.On("Start").Return(nil)
+	container.On("Remove").Return(nil)
+
+	mockFactory := &mockContainerFactory{}
+	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
+	containerFactory = mockFactory
+
+	acc := &mockAccessor{}
+	acc.On("AppendLogLine", job.ID, output).Return(nil)
+	acc.On("CompleteStep", job.ID).Return(nil)
+	accessor = acc
+
+	resultErr := job.Execute()
+
+	assert.Nil(t, resultErr)
+	acc.Mock.AssertExpectations(t)
+}

@@ -15,34 +15,9 @@ func (m *mockContainerFactory) NewContainer(source string, env []string) Contain
 	return args.Get(0).(Container)
 }
 
-type containerCommandFunc func() error
-type containerAttachFunc func(stdIn io.Reader, stdOut, stdErr io.Writer) error
-
-type testContainer struct {
-	createFunc containerCommandFunc
-	attachFunc containerAttachFunc
-	startFunc  containerCommandFunc
-	removeFunc containerCommandFunc
-}
-
-func (c *testContainer) Create() error {
-	return c.createFunc()
-}
-
-func (c *testContainer) Attach(stdIn io.Reader, stdOut, stdErr io.Writer) error {
-	return c.attachFunc(stdIn, stdOut, stdErr)
-}
-
-func (c *testContainer) Start() error {
-	return c.startFunc()
-}
-
-func (c *testContainer) Remove() error {
-	return c.removeFunc()
-}
-
 type mockContainer struct {
 	mock.Mock
+	output string
 }
 
 func (m *mockContainer) Create() error {
@@ -51,6 +26,11 @@ func (m *mockContainer) Create() error {
 }
 
 func (m *mockContainer) Attach(stdIn io.Reader, stdOut, stdErr io.Writer) error {
+
+	if len(m.output) > 0 {
+		stdOut.Write([]byte(m.output))
+		stdOut.Write([]byte{'\n'})
+	}
 	args := m.Mock.Called(stdIn, stdOut, stdErr)
 	return args.Error(0)
 }
