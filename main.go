@@ -1,11 +1,14 @@
 package main
 
 import (
+	"flag"
 	"github.com/CenturyLinkLabs/stevedore/api"
 )
 
 func main() {
-	api.ListenAndServe()
+	port := flag.Int("p", 2000, "specify the port on which the server will run")
+	flag.Parse()
+	api.ListenAndServe(*port)
 }
 
 // For streaming responses

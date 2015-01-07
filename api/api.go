@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -80,13 +81,13 @@ func createRouter() (*mux.Router, error) {
 	return router, nil
 }
 
-func ListenAndServe() {
+func ListenAndServe(p int) {
 	router, err := createRouter()
 	if err != nil {
 		log.Errorf("error:", err)
 		os.Exit(1)
 	}
 
-	log.Infof("Server running on port 2000")
-	http.ListenAndServe(":2000", router)
+	log.Infof("Server running on port %v", p)
+	http.ListenAndServe(fmt.Sprintf(":%v", p), router)
 }
