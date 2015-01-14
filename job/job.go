@@ -98,6 +98,17 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	}
 	log.Debugf("Container %s created", container)
 
+	defer func() {
+		var msg string
+
+		if err := container.Remove(); err != nil {
+			msg = fmt.Sprintf("Container %s NOT removed", container)
+		} else {
+			msg = fmt.Sprintf("Container %s removed", container)
+		}
+		log.Debug(msg)
+	}()
+
 	go func() {
 		container.Attach(stdIn, stdOut, stdErr)
 		stdOut.Write([]byte{EOT, '\n'})
@@ -114,10 +125,9 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	}
 	log.Debugf("Container %s stopped", container)
 
-	if err := container.Remove(); err != nil {
+	if err := container.Inspect(); err != nil {
 		return nil, err
 	}
-	log.Debugf("Container %s removed", container)
 
 	return output, nil
 }

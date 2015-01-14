@@ -1,6 +1,7 @@
 package job
 
 import (
+	"fmt"
 	"io"
 
 	log "github.com/Sirupsen/logrus"
@@ -28,6 +29,7 @@ type Container interface {
 	Create() error
 	Attach(stdIn io.Reader, stdOut, stdErr io.Writer) error
 	Start() error
+	Inspect() error
 	Remove() error
 }
 
@@ -85,6 +87,20 @@ func (c *dockerContainer) Attach(stdIn io.Reader, stdOut, stdErr io.Writer) erro
 
 func (c *dockerContainer) Start() error {
 	return dockerClient.StartContainer(c.ID, nil)
+}
+
+func (c *dockerContainer) Inspect() error {
+	container, err := dockerClient.InspectContainer(c.ID)
+
+	if err != nil {
+		return err
+	}
+
+	if container.State.ExitCode != 0 {
+		return fmt.Errorf("Container exit code: %d", container.State.ExitCode)
+	}
+
+	return nil
 }
 
 func (c *dockerContainer) Remove() error {

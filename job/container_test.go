@@ -40,6 +40,11 @@ func (m *mockContainer) Start() error {
 	return args.Error(0)
 }
 
+func (m *mockContainer) Inspect() error {
+	args := m.Mock.Called()
+	return args.Error(0)
+}
+
 func (m *mockContainer) Remove() error {
 	args := m.Mock.Called()
 	return args.Error(0)

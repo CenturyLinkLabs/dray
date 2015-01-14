@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/CenturyLinkLabs/stevedore/job"
+	log "github.com/Sirupsen/logrus"
 )
 
 func listJobs(context context, responseWriter http.ResponseWriter) {
@@ -32,7 +33,11 @@ func createJob(context context, responseWriter http.ResponseWriter) {
 		return
 	}
 
-	go j.Execute()
+	go func() {
+		if err := j.Execute(); err != nil {
+			log.Error(err)
+		}
+	}()
 
 	json.NewEncoder(responseWriter).Encode(j)
 }
@@ -86,6 +91,7 @@ func deleteJob(context context, responseWriter http.ResponseWriter) {
 }
 
 func handleErr(err error, w http.ResponseWriter) {
+	log.Error(err)
 	w.Header().Del("Content-Type")
 
 	if _, ok := err.(job.NotFoundError); ok {

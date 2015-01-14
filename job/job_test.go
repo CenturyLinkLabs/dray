@@ -99,6 +99,7 @@ func TestExecuteSuccess(t *testing.T) {
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
 	container.On("Start").Return(nil)
+	container.On("Inspect").Return(nil)
 	container.On("Remove").Return(nil)
 
 	mockFactory := &mockContainerFactory{}
@@ -162,6 +163,7 @@ func TestExecuteContainerStartError(t *testing.T) {
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
 	container.On("Start").Return(err)
+	container.On("Remove").Return(err)
 
 	mockFactory := &mockContainerFactory{}
 	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
@@ -177,7 +179,7 @@ func TestExecuteContainerStartError(t *testing.T) {
 	container.Mock.AssertExpectations(t)
 }
 
-func TestExecuteContainerDeleteError(t *testing.T) {
+func TestExecuteContainerInspectError(t *testing.T) {
 	err := errors.New("oops")
 	jobStep := JobStep{
 		Name:        "Step1",
@@ -196,7 +198,8 @@ func TestExecuteContainerDeleteError(t *testing.T) {
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
 	container.On("Start").Return(nil)
-	container.On("Remove").Return(err)
+	container.On("Inspect").Return(err)
+	container.On("Remove").Return(nil)
 
 	mockFactory := &mockContainerFactory{}
 	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
@@ -231,6 +234,7 @@ func TestExecuteOutputLogging(t *testing.T) {
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
 	container.On("Start").Return(nil)
+	container.On("Inspect").Return(nil)
 	container.On("Remove").Return(nil)
 
 	mockFactory := &mockContainerFactory{}
