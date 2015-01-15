@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -31,6 +32,7 @@ type Job struct {
 	Name           string    `json:"name,omitempty"`
 	Steps          []JobStep `json:"steps,omitempty"`
 	StepsCompleted string    `json:"stepsCompleted,omitempty"`
+	Status         string    `json:"status,omitempty"`
 }
 
 type JobStep struct {
@@ -70,9 +72,12 @@ func (job *Job) GetLog(index int) (*JobLog, error) {
 }
 
 func (job *Job) Execute() error {
+	var err error
+	status := "running"
 	buffer := &bytes.Buffer{}
 	capture := io.Reader(buffer)
-	var err error
+
+	accessor.Update(job.ID, "status", status)
 
 	for i := range job.Steps {
 		capture, err = job.executeStep(i, capture)
@@ -80,10 +85,16 @@ func (job *Job) Execute() error {
 		if err != nil {
 			break
 		}
-
-		accessor.CompleteStep(job.ID)
+		accessor.Update(job.ID, "completedSteps", strconv.Itoa(i+1))
 	}
 
+	if err != nil {
+		status = "error"
+	} else {
+		status = "complete"
+	}
+
+	accessor.Update(job.ID, "status", status)
 	return err
 }
 

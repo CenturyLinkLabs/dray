@@ -88,8 +88,8 @@ func TestExecuteSuccess(t *testing.T) {
 	}
 
 	job := &Job{
-		ID:    "123",
-		Steps: []JobStep{jobStep},
+		ID:          "123",
+		Steps:       []JobStep{jobStep},
 	}
 
 	container := &mockContainer{}
@@ -107,13 +107,16 @@ func TestExecuteSuccess(t *testing.T) {
 	containerFactory = mockFactory
 
 	acc := &mockAccessor{}
-	acc.On("CompleteStep", job.ID).Return(nil)
+	acc.On("Update", job.ID, "status", "running").Return(nil)
+	acc.On("Update", job.ID, "completedSteps", "1").Return(nil)
+	acc.On("Update", job.ID, "status", "complete").Return(nil)
 	accessor = acc
 
 	resultErr := job.Execute()
 
 	assert.Nil(t, resultErr)
 	container.Mock.AssertExpectations(t)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestExecuteContainerCreateError(t *testing.T) {
@@ -135,6 +138,11 @@ func TestExecuteContainerCreateError(t *testing.T) {
 	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
 	containerFactory = mockFactory
 
+	acc := &mockAccessor{}
+	acc.On("Update", job.ID, "status", "running").Return(nil)
+	acc.On("Update", job.ID, "status", "error").Return(nil)
+	accessor = acc
+
 	resultErr := job.Execute()
 
 	if assert.Error(t, resultErr) {
@@ -142,6 +150,7 @@ func TestExecuteContainerCreateError(t *testing.T) {
 	}
 
 	container.Mock.AssertExpectations(t)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestExecuteContainerStartError(t *testing.T) {
@@ -169,6 +178,11 @@ func TestExecuteContainerStartError(t *testing.T) {
 	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
 	containerFactory = mockFactory
 
+	acc := &mockAccessor{}
+	acc.On("Update", job.ID, "status", "running").Return(nil)
+	acc.On("Update", job.ID, "status", "error").Return(nil)
+	accessor = acc
+
 	resultErr := job.Execute()
 
 	if assert.Error(t, resultErr) {
@@ -177,6 +191,7 @@ func TestExecuteContainerStartError(t *testing.T) {
 
 	time.Sleep(time.Millisecond)
 	container.Mock.AssertExpectations(t)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestExecuteContainerInspectError(t *testing.T) {
@@ -188,6 +203,7 @@ func TestExecuteContainerInspectError(t *testing.T) {
 	}
 
 	job := &Job{
+		ID:    "123",
 		Steps: []JobStep{jobStep},
 	}
 
@@ -205,6 +221,11 @@ func TestExecuteContainerInspectError(t *testing.T) {
 	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
 	containerFactory = mockFactory
 
+	acc := &mockAccessor{}
+	acc.On("Update", job.ID, "status", "running").Return(nil)
+	acc.On("Update", job.ID, "status", "error").Return(nil)
+	accessor = acc
+
 	resultErr := job.Execute()
 
 	if assert.Error(t, resultErr) {
@@ -212,6 +233,7 @@ func TestExecuteContainerInspectError(t *testing.T) {
 	}
 
 	container.Mock.AssertExpectations(t)
+	acc.Mock.AssertExpectations(t)
 }
 
 func TestExecuteOutputLogging(t *testing.T) {
@@ -242,12 +264,15 @@ func TestExecuteOutputLogging(t *testing.T) {
 	containerFactory = mockFactory
 
 	acc := &mockAccessor{}
+	acc.On("Update", job.ID, "status", "running").Return(nil)
+	acc.On("Update", job.ID, "completedSteps", "1").Return(nil)
 	acc.On("AppendLogLine", job.ID, output).Return(nil)
-	acc.On("CompleteStep", job.ID).Return(nil)
+	acc.On("Update", job.ID, "status", "complete").Return(nil)
 	accessor = acc
 
 	resultErr := job.Execute()
 
 	assert.Nil(t, resultErr)
+	container.Mock.AssertExpectations(t)
 	acc.Mock.AssertExpectations(t)
 }

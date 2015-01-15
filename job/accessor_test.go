@@ -28,8 +28,8 @@ func (m *mockAccessor) Delete(jobID string) error {
 	return args.Error(0)
 }
 
-func (m *mockAccessor) CompleteStep(jobID string) error {
-	args := m.Mock.Called(jobID)
+func (m *mockAccessor) Update(jobID, attr, value string) error {
+	args := m.Mock.Called(jobID, attr, value)
 	return args.Error(0)
 }
 

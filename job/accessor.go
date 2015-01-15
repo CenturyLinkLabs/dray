@@ -32,7 +32,7 @@ type JobAccessor interface {
 	Get(jobID string) (*Job, error)
 	Create(job *Job) error
 	Delete(jobID string) error
-	CompleteStep(jobID string) error
+	Update(jobID, attr, value string) error
 	GetJobLog(jobID string, index int) (*JobLog, error)
 	AppendLogLine(jobID, logLine string) error
 }
@@ -75,6 +75,7 @@ func (*redisJobAccessor) Get(jobID string) (*Job, error) {
 	}
 
 	job.StepsCompleted = status["completedSteps"]
+	job.Status = status["status"]
 	return &job, nil
 }
 
@@ -87,7 +88,7 @@ func (*redisJobAccessor) Create(job *Job) error {
 	}
 
 	totalSteps := string(len(job.Steps))
-	reply = command("hmset", jobKey(job.ID), "totalSteps", totalSteps, "completedSteps", "0")
+	reply = command("hmset", jobKey(job.ID), "totalSteps", totalSteps, "completedSteps", "0", "status", "")
 	return reply.Err
 }
 
@@ -106,8 +107,8 @@ func (*redisJobAccessor) Delete(jobID string) error {
 	return reply.Err
 }
 
-func (*redisJobAccessor) CompleteStep(jobID string) error {
-	reply := command("hincrby", jobKey(jobID), "completedSteps", 1)
+func (*redisJobAccessor) Update(jobID, attr, value string) error {
+	reply := command("hset", jobKey(jobID), attr, value)
 	return reply.Err
 }
 
