@@ -84,11 +84,12 @@ func TestExecuteSuccess(t *testing.T) {
 	jobStep := JobStep{
 		Name:        "Step1",
 		Source:      "foo/bar",
-		Environment: []EnvVar{},
+		Environment: []EnvVar{EnvVar{Variable: "y", Value: "2"}},
 	}
 
 	job := &Job{
 		ID:          "123",
+		Environment: []EnvVar{EnvVar{Variable: "x", Value: "1"}},
 		Steps:       []JobStep{jobStep},
 	}
 
@@ -103,7 +104,7 @@ func TestExecuteSuccess(t *testing.T) {
 	container.On("Remove").Return(nil)
 
 	mockFactory := &mockContainerFactory{}
-	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
+	mockFactory.On("NewContainer", jobStep.Source, []string{"y=2", "x=1"}).Return(container)
 	containerFactory = mockFactory
 
 	acc := &mockAccessor{}

@@ -31,6 +31,7 @@ type Job struct {
 	ID             string    `json:"id,omitempty"`
 	Name           string    `json:"name,omitempty"`
 	Steps          []JobStep `json:"steps,omitempty"`
+	Environment    []EnvVar  `json:"environment,omitempty"`
 	StepsCompleted string    `json:"stepsCompleted,omitempty"`
 	Status         string    `json:"status,omitempty"`
 }
@@ -102,6 +103,9 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	stdOut := &bytes.Buffer{}
 	stdErr := &bytes.Buffer{}
 	step := job.Steps[stepIndex]
+
+	// Each step gets its own environment, plus the job-level environment
+	step.Environment = append(step.Environment, job.Environment...)
 	container := containerFactory.NewContainer(step.Source, stringifyEnvironment(step.Environment))
 
 	if err := container.Create(); err != nil {
