@@ -3,13 +3,14 @@ package job
 import (
 	"fmt"
 	"io"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 )
 
 const (
-	DockerEndpoint = "tcp://localhost:2375"
+	DefaultDockerEndpoint = "unix:///var/run/docker.sock"
 )
 
 var (
@@ -17,7 +18,13 @@ var (
 )
 
 func init() {
-	client, err := docker.NewClient(DockerEndpoint)
+	dockerEndpoint := os.Getenv("DOCKER_HOST")
+
+	if len(dockerEndpoint) == 0 {
+		dockerEndpoint = DefaultDockerEndpoint
+	}
+
+	client, err := docker.NewClient(dockerEndpoint)
 	if err != nil {
 		log.Errorf("Error instantiating Docker client: %s", err)
 		panic(err)

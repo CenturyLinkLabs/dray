@@ -3,6 +3,8 @@ package job
 import (
 	"crypto/rand"
 	"fmt"
+	"net/url"
+	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fzzy/radix/extra/pool"
@@ -18,7 +20,18 @@ var (
 )
 
 func init() {
-	pool, err := pool.NewPool("tcp", "127.0.0.1:6379", 4)
+	redisPort := os.Getenv("REDIS_PORT")
+	if len(redisPort) == 0 {
+		log.Error("Missing required REDIS_PORT environment variable")
+	}
+
+	u, err := url.Parse(redisPort)
+	if err != nil {
+		log.Errorf("Invalid Redis URL: %s", err)
+		panic(err)
+	}
+
+	pool, err := pool.NewPool("tcp", u.Host, 4)
 	if err != nil {
 		log.Errorf("Error instantiating Redis pool: %s", err)
 		panic(err)
