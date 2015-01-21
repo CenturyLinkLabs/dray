@@ -3,8 +3,6 @@ package job
 import (
 	"crypto/rand"
 	"fmt"
-	"net/url"
-	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fzzy/radix/extra/pool"
@@ -15,29 +13,10 @@ const (
 	jobsKey = "jobs"
 )
 
-var (
-	rp *pool.Pool
-)
+type NotFoundError string
 
-func init() {
-	redisPort := os.Getenv("REDIS_PORT")
-	if len(redisPort) == 0 {
-		log.Error("Missing required REDIS_PORT environment variable")
-	}
-
-	u, err := url.Parse(redisPort)
-	if err != nil {
-		log.Errorf("Invalid Redis URL: %s", err)
-		panic(err)
-	}
-
-	pool, err := pool.NewPool("tcp", u.Host, 4)
-	if err != nil {
-		log.Errorf("Error instantiating Redis pool: %s", err)
-		panic(err)
-	}
-
-	rp = pool
+func (s NotFoundError) Error() string {
+	return fmt.Sprintf("Cannot find job with ID %s", string(s))
 }
 
 type JobAccessor interface {
@@ -51,18 +30,23 @@ type JobAccessor interface {
 }
 
 type redisJobAccessor struct {
+	pool *pool.Pool
 }
 
-type NotFoundError string
+func NewJobAccessor(host string) JobAccessor {
+	pool, err := pool.NewPool("tcp", host, 4)
+	if err != nil {
+		log.Errorf("Error instantiating Redis pool: %s", err)
+		panic(err)
+	}
 
-func (s NotFoundError) Error() string {
-	return fmt.Sprintf("Cannot find job with ID %s", string(s))
+	return &redisJobAccessor{pool: pool}
 }
 
-func (*redisJobAccessor) All() ([]Job, error) {
+func (a *redisJobAccessor) All() ([]Job, error) {
 	jobs := []Job{}
 
-	jobIDs, err := command("lrange", jobsKey, 0, -1).List()
+	jobIDs, err := a.command("lrange", jobsKey, 0, -1).List()
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +58,9 @@ func (*redisJobAccessor) All() ([]Job, error) {
 	return jobs, nil
 }
 
-func (*redisJobAccessor) Get(jobID string) (*Job, error) {
+func (a *redisJobAccessor) Get(jobID string) (*Job, error) {
 	job := Job{ID: jobID}
-	reply := command("hgetall", jobKey(jobID))
+	reply := a.command("hgetall", jobKey(jobID))
 
 	if len(reply.Elems) == 0 {
 		return nil, NotFoundError(jobID)
@@ -92,41 +76,41 @@ func (*redisJobAccessor) Get(jobID string) (*Job, error) {
 	return &job, nil
 }
 
-func (*redisJobAccessor) Create(job *Job) error {
+func (a *redisJobAccessor) Create(job *Job) error {
 	job.ID = pseudoUUID()
 
-	reply := command("rpush", jobsKey, job.ID)
+	reply := a.command("rpush", jobsKey, job.ID)
 	if reply.Err != nil {
 		return reply.Err
 	}
 
 	totalSteps := string(len(job.Steps))
-	reply = command("hmset", jobKey(job.ID), "totalSteps", totalSteps, "completedSteps", "0", "status", "")
+	reply = a.command("hmset", jobKey(job.ID), "totalSteps", totalSteps, "completedSteps", "0", "status", "")
 	return reply.Err
 }
 
-func (*redisJobAccessor) Delete(jobID string) error {
-	reply := command("lrem", jobsKey, 0, jobID)
+func (a *redisJobAccessor) Delete(jobID string) error {
+	reply := a.command("lrem", jobsKey, 0, jobID)
 	if reply.Err != nil {
 		return reply.Err
 	}
 
-	reply = command("del", jobKey(jobID))
+	reply = a.command("del", jobKey(jobID))
 	if reply.Err != nil {
 		return reply.Err
 	}
 
-	reply = command("del", jobLogKey(jobID))
+	reply = a.command("del", jobLogKey(jobID))
 	return reply.Err
 }
 
-func (*redisJobAccessor) Update(jobID, attr, value string) error {
-	reply := command("hset", jobKey(jobID), attr, value)
+func (a *redisJobAccessor) Update(jobID, attr, value string) error {
+	reply := a.command("hset", jobKey(jobID), attr, value)
 	return reply.Err
 }
 
-func (*redisJobAccessor) GetJobLog(jobID string, index int) (*JobLog, error) {
-	lines, err := command("lrange", jobLogKey(jobID), index, -1).List()
+func (a *redisJobAccessor) GetJobLog(jobID string, index int) (*JobLog, error) {
+	lines, err := a.command("lrange", jobLogKey(jobID), index, -1).List()
 	if err != nil {
 		return nil, err
 	}
@@ -134,17 +118,17 @@ func (*redisJobAccessor) GetJobLog(jobID string, index int) (*JobLog, error) {
 	return &JobLog{Lines: lines}, nil
 }
 
-func (*redisJobAccessor) AppendLogLine(jobID, logLine string) error {
-	reply := command("rpush", jobLogKey(jobID), logLine)
+func (a *redisJobAccessor) AppendLogLine(jobID, logLine string) error {
+	reply := a.command("rpush", jobLogKey(jobID), logLine)
 	return reply.Err
 }
 
-func command(cmd string, args ...interface{}) *redis.Reply {
-	client, err := rp.Get()
+func (a *redisJobAccessor) command(cmd string, args ...interface{}) *redis.Reply {
+	client, err := a.pool.Get()
 	if err != nil {
 		return &redis.Reply{Err: err}
 	}
-	defer rp.Put(client)
+	defer a.pool.Put(client)
 
 	return client.Cmd(cmd, args...)
 }

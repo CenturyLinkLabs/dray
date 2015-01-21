@@ -17,16 +17,6 @@ const (
 	EOT            = byte('\u0003')
 )
 
-var (
-	accessor         JobAccessor
-	containerFactory ContainerFactory
-)
-
-func init() {
-	accessor = &redisJobAccessor{}
-	containerFactory = &dockerContainerFactory{}
-}
-
 type Job struct {
 	ID             string    `json:"id,omitempty"`
 	Name           string    `json:"name,omitempty"`
@@ -52,41 +42,54 @@ type JobLog struct {
 	Lines []string `json:"lines"`
 }
 
-func ListAll() ([]Job, error) {
-	return accessor.All()
+type JobManager interface {
+	ListAll() ([]Job, error)
+	GetByID(string) (*Job, error)
+	Create(*Job) error
+	Execute(*Job) error
+	GetLog(*Job, int) (*JobLog, error)
+	Delete(*Job) error
 }
 
-func GetByID(jobID string) (*Job, error) {
-	return accessor.Get(jobID)
+type jobManager struct {
+	accessor         JobAccessor
+	containerFactory ContainerFactory
 }
 
-func (job *Job) Create() error {
-	return accessor.Create(job)
+func NewJobManager(a JobAccessor, cf ContainerFactory) JobManager {
+	return &jobManager{
+		accessor:         a,
+		containerFactory: cf,
+	}
 }
 
-func (job *Job) Delete() error {
-	return accessor.Delete(job.ID)
+func (jm *jobManager) ListAll() ([]Job, error) {
+	return jm.accessor.All()
 }
 
-func (job *Job) GetLog(index int) (*JobLog, error) {
-	return accessor.GetJobLog(job.ID, index)
+func (jm *jobManager) GetByID(jobID string) (*Job, error) {
+	return jm.accessor.Get(jobID)
 }
 
-func (job *Job) Execute() error {
+func (jm *jobManager) Create(job *Job) error {
+	return jm.accessor.Create(job)
+}
+
+func (jm *jobManager) Execute(job *Job) error {
 	var err error
 	status := "running"
 	buffer := &bytes.Buffer{}
 	capture := io.Reader(buffer)
 
-	accessor.Update(job.ID, "status", status)
+	jm.accessor.Update(job.ID, "status", status)
 
 	for i := range job.Steps {
-		capture, err = job.executeStep(i, capture)
+		capture, err = jm.executeStep(job, i, capture)
 
 		if err != nil {
 			break
 		}
-		accessor.Update(job.ID, "completedSteps", strconv.Itoa(i+1))
+		jm.accessor.Update(job.ID, "completedSteps", strconv.Itoa(i+1))
 	}
 
 	if err != nil {
@@ -95,34 +98,32 @@ func (job *Job) Execute() error {
 		status = "complete"
 	}
 
-	accessor.Update(job.ID, "status", status)
+	jm.accessor.Update(job.ID, "status", status)
 	return err
 }
 
-func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
+func (jm *jobManager) GetLog(job *Job, index int) (*JobLog, error) {
+	return jm.accessor.GetJobLog(job.ID, index)
+}
+
+func (jm *jobManager) Delete(job *Job) error {
+	return jm.accessor.Delete(job.ID)
+}
+
+func (jm *jobManager) executeStep(job *Job, stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	stdOut := &bytes.Buffer{}
 	stdErr := &bytes.Buffer{}
 	step := job.Steps[stepIndex]
 
 	// Each step gets its own environment, plus the job-level environment
 	step.Environment = append(step.Environment, job.Environment...)
-	container := containerFactory.NewContainer(step.Source, stringifyEnvironment(step.Environment))
+	container := jm.containerFactory.NewContainer(step.Source, stringifyEnvironment(step.Environment))
 
 	if err := container.Create(); err != nil {
 		return nil, err
 	}
-	log.Debugf("Container %s created", container)
 
-	defer func() {
-		var msg string
-
-		if err := container.Remove(); err != nil {
-			msg = fmt.Sprintf("Container %s NOT removed", container)
-		} else {
-			msg = fmt.Sprintf("Container %s removed", container)
-		}
-		log.Debug(msg)
-	}()
+	defer container.Remove()
 
 	go func() {
 		container.Attach(stdIn, stdOut, stdErr)
@@ -132,9 +133,8 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	if err := container.Start(); err != nil {
 		return nil, err
 	}
-	log.Debugf("Container %s started", container)
 
-	output, err := job.captureOutput(stdOut)
+	output, err := jm.captureOutput(job, stdOut)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (job *Job) executeStep(stepIndex int, stdIn io.Reader) (io.Reader, error) {
 	return output, nil
 }
 
-func (job *Job) captureOutput(r io.Reader) (io.Reader, error) {
+func (jm *jobManager) captureOutput(job *Job, r io.Reader) (io.Reader, error) {
 	reader := bufio.NewReader(r)
 	buffer := &bytes.Buffer{}
 	capture := false
@@ -161,7 +161,7 @@ func (job *Job) captureOutput(r io.Reader) (io.Reader, error) {
 			}
 			s := strings.TrimSpace(string(line))
 			log.Debugf(s)
-			accessor.AppendLogLine(job.ID, s)
+			jm.accessor.AppendLogLine(job.ID, s)
 
 			if s == EndDelimiter {
 				capture = false

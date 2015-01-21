@@ -3,34 +3,10 @@ package job
 import (
 	"fmt"
 	"io"
-	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 )
-
-const (
-	DefaultDockerEndpoint = "unix:///var/run/docker.sock"
-)
-
-var (
-	dockerClient *docker.Client
-)
-
-func init() {
-	dockerEndpoint := os.Getenv("DOCKER_HOST")
-
-	if len(dockerEndpoint) == 0 {
-		dockerEndpoint = DefaultDockerEndpoint
-	}
-
-	client, err := docker.NewClient(dockerEndpoint)
-	if err != nil {
-		log.Errorf("Error instantiating Docker client: %s", err)
-		panic(err)
-	}
-	dockerClient = client
-}
 
 type Container interface {
 	Create() error
@@ -48,16 +24,33 @@ type dockerContainer struct {
 	ID     string
 	Source string
 	Env    []string
+
+	client *docker.Client
 }
 
 type dockerContainerFactory struct {
+	client *docker.Client
 }
 
-func (*dockerContainerFactory) NewContainer(source string, env []string) Container {
-	return &dockerContainer{Source: source, Env: env}
+func NewContainerFactory(dockerEndpoint string) ContainerFactory {
+	client, err := docker.NewClient(dockerEndpoint)
+	if err != nil {
+		log.Errorf("Error instantiating Docker client: %s", err)
+		panic(err)
+	}
+
+	return &dockerContainerFactory{client: client}
+}
+
+func (cf *dockerContainerFactory) NewContainer(source string, env []string) Container {
+	return &dockerContainer{Source: source, Env: env, client: cf.client}
 }
 
 func (c *dockerContainer) Create() error {
+	if err := c.ensureImage(); err != nil {
+		return err
+	}
+
 	opts := docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Image:     c.Source,
@@ -67,10 +60,11 @@ func (c *dockerContainer) Create() error {
 		},
 	}
 
-	container, err := dockerClient.CreateContainer(opts)
+	container, err := c.client.CreateContainer(opts)
 
 	if err == nil {
 		c.ID = container.ID
+		log.Debugf("Container %s created", c)
 	}
 
 	return err
@@ -89,15 +83,21 @@ func (c *dockerContainer) Attach(stdIn io.Reader, stdOut, stdErr io.Writer) erro
 		//RawTerminal:  true,
 	}
 
-	return dockerClient.AttachToContainer(attachOpts)
+	return c.client.AttachToContainer(attachOpts)
 }
 
 func (c *dockerContainer) Start() error {
-	return dockerClient.StartContainer(c.ID, nil)
+	err := c.client.StartContainer(c.ID, nil)
+
+	if err == nil {
+		log.Debugf("Container %s started", c)
+	}
+
+	return err
 }
 
 func (c *dockerContainer) Inspect() error {
-	container, err := dockerClient.InspectContainer(c.ID)
+	container, err := c.client.InspectContainer(c.ID)
 
 	if err != nil {
 		return err
@@ -115,7 +115,33 @@ func (c *dockerContainer) Remove() error {
 		ID: c.ID,
 	}
 
-	return dockerClient.RemoveContainer(removeOpts)
+	err := c.client.RemoveContainer(removeOpts)
+
+	if err == nil {
+		log.Debugf("Container %s removed", c)
+	}
+
+	return err
+}
+
+func (c *dockerContainer) ensureImage() error {
+	_, err := c.client.InspectImage(c.Source)
+	if err == docker.ErrNoSuchImage {
+
+		if err = c.pullImage(); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func (c *dockerContainer) pullImage() error {
+	opts := docker.PullImageOptions{
+		Repository: c.Source,
+	}
+
+	return c.client.PullImage(opts, docker.AuthConfiguration{})
 }
 
 func (c *dockerContainer) String() string {

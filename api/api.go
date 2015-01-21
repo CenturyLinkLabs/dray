@@ -1,10 +1,11 @@
 package api
 
 import (
-	"io"
+	"fmt"
 	"net/http"
 	"os"
 
+	"github.com/CenturyLinkLabs/dray/job"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
@@ -13,31 +14,29 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type handler func(c context, w http.ResponseWriter)
+type handler func(jm job.JobManager, r requestHelper, w http.ResponseWriter)
 
-type context struct {
-	request *http.Request
+type jobServer struct {
+	jobManager job.JobManager
 }
 
-func (c *context) Params(key string) string {
-	return mux.Vars(c.request)[key]
+func NewServer(jm job.JobManager) *jobServer {
+	return &jobServer{jobManager: jm}
 }
 
-func (c *context) Query(key string) string {
-	v := c.request.URL.Query()[key]
-
-	if len(v) == 0 {
-		return ""
+func (s *jobServer) Start(port int) {
+	router, err := s.createRouter()
+	if err != nil {
+		log.Errorf("error:", err)
+		os.Exit(1)
 	}
 
-	return v[0]
+	log.Infof("Server running on port %d", port)
+	portString := fmt.Sprintf(":%d", port)
+	http.ListenAndServe(portString, router)
 }
 
-func (c *context) Body() io.ReadCloser {
-	return c.request.Body
-}
-
-func createRouter() (*mux.Router, error) {
+func (s *jobServer) createRouter() (*mux.Router, error) {
 	router := mux.NewRouter()
 
 	m := map[string]map[string]handler{
@@ -61,7 +60,7 @@ func createRouter() (*mux.Router, error) {
 			localRoute := route
 			localFct := fct
 			wrap := func(w http.ResponseWriter, r *http.Request) {
-				c := context{request: r}
+				wrappedRequest := &requestWrapper{httpRequest: r}
 
 				log.Infof("%s %s", r.Method, r.RequestURI)
 
@@ -69,7 +68,7 @@ func createRouter() (*mux.Router, error) {
 					w.Header().Set("Content-Type", "application/json")
 				}
 
-				localFct(c, w)
+				localFct(s.jobManager, wrappedRequest, w)
 			}
 
 			router.Path("/v{version:[0-9.]+}" + localRoute).Methods(localMethod).HandlerFunc(wrap)
@@ -78,15 +77,4 @@ func createRouter() (*mux.Router, error) {
 	}
 
 	return router, nil
-}
-
-func ListenAndServe() {
-	router, err := createRouter()
-	if err != nil {
-		log.Errorf("error:", err)
-		os.Exit(1)
-	}
-
-	log.Infof("Server running on port 2000")
-	http.ListenAndServe(":2000", router)
 }

@@ -5,89 +5,89 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/CenturyLinkLabs/stevedore/job"
+	"github.com/CenturyLinkLabs/dray/job"
 	log "github.com/Sirupsen/logrus"
 )
 
-func listJobs(context context, responseWriter http.ResponseWriter) {
-	jobs, err := job.ListAll()
+func listJobs(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+	jobs, err := jm.ListAll()
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	json.NewEncoder(responseWriter).Encode(jobs)
+	json.NewEncoder(w).Encode(jobs)
 }
 
-func createJob(context context, responseWriter http.ResponseWriter) {
-	j := job.Job{}
-	err := json.NewDecoder(context.Body()).Decode(&j)
+func createJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+	j := &job.Job{}
+	err := json.NewDecoder(r.Body()).Decode(j)
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	err = j.Create()
+	err = jm.Create(j)
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
 	go func() {
-		if err := j.Execute(); err != nil {
+		if err := jm.Execute(j); err != nil {
 			log.Error(err)
 		}
 	}()
 
-	json.NewEncoder(responseWriter).Encode(j)
+	json.NewEncoder(w).Encode(j)
 }
 
-func getJob(context context, responseWriter http.ResponseWriter) {
-	j, err := job.GetByID(context.Params("jobid"))
+func getJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+	j, err := jm.GetByID(r.Param("jobid"))
 
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	json.NewEncoder(responseWriter).Encode(j)
+	json.NewEncoder(w).Encode(j)
 }
 
-func getJobLog(context context, responseWriter http.ResponseWriter) {
-	index, err := strconv.Atoi(context.Query("index"))
+func getJobLog(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+	index, err := strconv.Atoi(r.Query("index"))
 	if err != nil {
 		index = 0
 	}
 
-	j, err := job.GetByID(context.Params("jobid"))
+	j, err := jm.GetByID(r.Param("jobid"))
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	log, err := j.GetLog(index)
+	log, err := jm.GetLog(j, index)
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	json.NewEncoder(responseWriter).Encode(log)
+	json.NewEncoder(w).Encode(log)
 }
 
-func deleteJob(context context, responseWriter http.ResponseWriter) {
-	j, err := job.GetByID(context.Params("jobid"))
+func deleteJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+	j, err := jm.GetByID(r.Param("jobid"))
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	err = j.Delete()
+	err = jm.Delete(j)
 	if err != nil {
-		handleErr(err, responseWriter)
+		handleErr(err, w)
 		return
 	}
 
-	responseWriter.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func handleErr(err error, w http.ResponseWriter) {

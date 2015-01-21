@@ -1,7 +1,7 @@
 
 ## Running
 
-As currently implemented, stevedore needs access to Redis (port 6379) and Docker (port 2375) running on the localhost (connection strings are currently hard-coded).
+As currently implemented, dray needs access to Redis (port 6379) and Docker (port 2375) running on the localhost (connection strings are currently hard-coded).
 
 ### Redis
 Simplest way to get Redis running is to run it in-container and map port 6379:
@@ -39,8 +39,8 @@ There are [instructions](https://coreos.com/docs/launching-containers/building/c
 
 Similar to the Redis set-up above, make sure that port 2375 is mapped in VirtualBox so that it is accessible from your host.
 
-### Stevedore
-After completing the Redis and Docker configuration above you should be able to start stevedore by navigating to the root project directory an executing the following:
+### Dray
+After completing the Redis and Docker configuration above you should be able to start dray by navigating to the root project directory an executing the following:
 
     go run main.go
 

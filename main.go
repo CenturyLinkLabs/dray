@@ -1,11 +1,51 @@
 package main
 
 import (
-	"github.com/CenturyLinkLabs/stevedore/api"
+	"net/url"
+	"os"
+
+	"github.com/CenturyLinkLabs/dray/api"
+	"github.com/CenturyLinkLabs/dray/job"
+	log "github.com/Sirupsen/logrus"
+)
+
+const (
+	DefaultDockerEndpoint = "unix:///var/run/docker.sock"
 )
 
 func main() {
-	api.ListenAndServe()
+	a := job.NewJobAccessor(redisHost())
+	cf := job.NewContainerFactory(dockerEndpoint())
+	jm := job.NewJobManager(a, cf)
+
+	s := api.NewServer(jm)
+	s.Start(2000)
+}
+
+func redisHost() string {
+	redisPort := os.Getenv("REDIS_PORT")
+
+	if len(redisPort) == 0 {
+		log.Error("Missing required REDIS_PORT environment variable")
+	}
+
+	u, err := url.Parse(redisPort)
+	if err != nil {
+		log.Errorf("Invalid Redis URL: %s", err)
+		panic(err)
+	}
+
+	return u.Host
+}
+
+func dockerEndpoint() string {
+	endpoint := os.Getenv("DOCKER_HOST")
+
+	if len(endpoint) == 0 {
+		endpoint = DefaultDockerEndpoint
+	}
+
+	return endpoint
 }
 
 // For streaming responses

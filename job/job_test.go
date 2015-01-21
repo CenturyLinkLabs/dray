@@ -9,271 +9,226 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestListAll(t *testing.T) {
-	jobs := []Job{Job{Name: "foo"}}
-	err := errors.New("oops")
+var (
+	job  *Job
+	step *JobStep
+	jm   *jobManager
+	a    *mockAccessor
+	cf   *mockContainerFactory
+	c    *mockContainer
+	err  error
+)
 
-	acc := &mockAccessor{}
-	acc.On("All").Return(jobs, err)
-	accessor = acc
-
-	resultJobs, resultErr := ListAll()
-	assert.Equal(t, jobs, resultJobs)
-	assert.Equal(t, err, resultErr)
-	acc.Mock.AssertExpectations(t)
-}
-
-func TestGetByID(t *testing.T) {
-	id := "123"
-	job := Job{Name: "foo"}
-	err := errors.New("oops")
-
-	acc := &mockAccessor{}
-	acc.On("Get", id).Return(&job, err)
-	accessor = acc
-
-	resultJob, resultErr := GetByID(id)
-	assert.Equal(t, &job, resultJob)
-	assert.Equal(t, err, resultErr)
-	acc.Mock.AssertExpectations(t)
-}
-
-func TestCreate(t *testing.T) {
-	job := &Job{Name: "foo"}
-	err := errors.New("oops")
-
-	acc := &mockAccessor{}
-	acc.On("Create", job).Return(err)
-	accessor = acc
-
-	resultErr := job.Create()
-	assert.Equal(t, err, resultErr)
-	acc.Mock.AssertExpectations(t)
-}
-
-func TestDelete(t *testing.T) {
-	job := &Job{ID: "123"}
-	err := errors.New("oops")
-
-	acc := &mockAccessor{}
-	acc.On("Delete", job.ID).Return(err)
-	accessor = acc
-
-	resultErr := job.Delete()
-	assert.Equal(t, err, resultErr)
-	acc.Mock.AssertExpectations(t)
-}
-
-func TestGetLog(t *testing.T) {
-	index := 3
-	job := &Job{ID: "123"}
-	jobLog := &JobLog{Index: 3}
-	err := errors.New("oops")
-
-	acc := &mockAccessor{}
-	acc.On("GetJobLog", job.ID, index).Return(jobLog, err)
-	accessor = acc
-
-	resultLog, resultErr := job.GetLog(index)
-	assert.Equal(t, jobLog, resultLog)
-	assert.Equal(t, err, resultErr)
-	acc.Mock.AssertExpectations(t)
-}
-
-func TestExecuteSuccess(t *testing.T) {
-	jobStep := JobStep{
+func setUp() {
+	step = &JobStep{
 		Name:        "Step1",
 		Source:      "foo/bar",
 		Environment: []EnvVar{EnvVar{Variable: "y", Value: "2"}},
 	}
 
-	job := &Job{
-		ID:          "123",
+	job = &Job{
+		Name:        "foo",
 		Environment: []EnvVar{EnvVar{Variable: "x", Value: "1"}},
-		Steps:       []JobStep{jobStep},
+		Steps:       []JobStep{*step},
 	}
 
-	container := &mockContainer{}
-	container.On("Create").Return(nil)
-	container.On("Attach",
+	a = &mockAccessor{}
+	c = &mockContainer{}
+	cf = &mockContainerFactory{}
+
+	jm = &jobManager{accessor: a, containerFactory: cf}
+	err = errors.New("oops")
+}
+
+func TestListAll(t *testing.T) {
+	setUp()
+	jobs := []Job{*job}
+
+	a.On("All").Return(jobs, err)
+
+	resultJobs, resultErr := jm.ListAll()
+
+	assert.Equal(t, jobs, resultJobs)
+	assert.Equal(t, err, resultErr)
+	a.Mock.AssertExpectations(t)
+}
+
+func TestGetByID(t *testing.T) {
+	setUp()
+	id := "123"
+
+	a.On("Get", id).Return(job, err)
+
+	resultJob, resultErr := jm.GetByID(id)
+
+	assert.Equal(t, job, resultJob)
+	assert.Equal(t, err, resultErr)
+	a.Mock.AssertExpectations(t)
+}
+
+func TestCreate(t *testing.T) {
+	setUp()
+
+	a.On("Create", job).Return(err)
+
+	resultErr := jm.Create(job)
+
+	assert.Equal(t, err, resultErr)
+	a.Mock.AssertExpectations(t)
+}
+
+func TestDelete(t *testing.T) {
+	a.On("Delete", job.ID).Return(err)
+
+	resultErr := jm.Delete(job)
+
+	assert.Equal(t, err, resultErr)
+	a.Mock.AssertExpectations(t)
+}
+
+func TestGetLog(t *testing.T) {
+	index := 3
+	jobLog := &JobLog{Index: 3}
+
+	a.On("GetJobLog", job.ID, index).Return(jobLog, err)
+
+	resultLog, resultErr := jm.GetLog(job, index)
+
+	assert.Equal(t, jobLog, resultLog)
+	assert.Equal(t, err, resultErr)
+	a.Mock.AssertExpectations(t)
+}
+
+func TestExecuteSuccess(t *testing.T) {
+	setUp()
+
+	c.On("Create").Return(nil)
+	c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	container.On("Start").Return(nil)
-	container.On("Inspect").Return(nil)
-	container.On("Remove").Return(nil)
+	c.On("Start").Return(nil)
+	c.On("Inspect").Return(nil)
+	c.On("Remove").Return(nil)
 
-	mockFactory := &mockContainerFactory{}
-	mockFactory.On("NewContainer", jobStep.Source, []string{"y=2", "x=1"}).Return(container)
-	containerFactory = mockFactory
+	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
 
-	acc := &mockAccessor{}
-	acc.On("Update", job.ID, "status", "running").Return(nil)
-	acc.On("Update", job.ID, "completedSteps", "1").Return(nil)
-	acc.On("Update", job.ID, "status", "complete").Return(nil)
-	accessor = acc
+	a.On("Update", job.ID, "status", "running").Return(nil)
+	a.On("Update", job.ID, "completedSteps", "1").Return(nil)
+	a.On("Update", job.ID, "status", "complete").Return(nil)
 
-	resultErr := job.Execute()
+	resultErr := jm.Execute(job)
+	time.Sleep(time.Millisecond)
 
 	assert.Nil(t, resultErr)
-	container.Mock.AssertExpectations(t)
-	acc.Mock.AssertExpectations(t)
+	cf.Mock.AssertExpectations(t)
+	c.Mock.AssertExpectations(t)
+	a.Mock.AssertExpectations(t)
 }
 
 func TestExecuteContainerCreateError(t *testing.T) {
-	err := errors.New("oops")
-	jobStep := JobStep{
-		Name:        "Step1",
-		Source:      "foo/bar",
-		Environment: []EnvVar{},
-	}
+	setUp()
 
-	job := &Job{
-		Steps: []JobStep{jobStep},
-	}
+	c.On("Create").Return(err)
 
-	container := &mockContainer{}
-	container.On("Create").Return(err)
+	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
 
-	mockFactory := &mockContainerFactory{}
-	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
-	containerFactory = mockFactory
+	a.On("Update", job.ID, "status", "running").Return(nil)
+	a.On("Update", job.ID, "status", "error").Return(nil)
 
-	acc := &mockAccessor{}
-	acc.On("Update", job.ID, "status", "running").Return(nil)
-	acc.On("Update", job.ID, "status", "error").Return(nil)
-	accessor = acc
-
-	resultErr := job.Execute()
+	resultErr := jm.Execute(job)
 
 	if assert.Error(t, resultErr) {
 		assert.Equal(t, err, resultErr)
 	}
 
-	container.Mock.AssertExpectations(t)
-	acc.Mock.AssertExpectations(t)
+	cf.Mock.AssertExpectations(t)
+	c.Mock.AssertExpectations(t)
+	a.Mock.AssertExpectations(t)
 }
 
 func TestExecuteContainerStartError(t *testing.T) {
-	err := errors.New("oops")
-	jobStep := JobStep{
-		Name:        "Step1",
-		Source:      "foo/bar",
-		Environment: []EnvVar{},
-	}
+	setUp()
 
-	job := &Job{
-		Steps: []JobStep{jobStep},
-	}
-
-	container := &mockContainer{}
-	container.On("Create").Return(nil)
-	container.On("Attach",
+	c.On("Create").Return(nil)
+	c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	container.On("Start").Return(err)
-	container.On("Remove").Return(err)
+	c.On("Start").Return(err)
+	c.On("Remove").Return(nil)
 
-	mockFactory := &mockContainerFactory{}
-	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
-	containerFactory = mockFactory
+	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
 
-	acc := &mockAccessor{}
-	acc.On("Update", job.ID, "status", "running").Return(nil)
-	acc.On("Update", job.ID, "status", "error").Return(nil)
-	accessor = acc
+	a.On("Update", job.ID, "status", "running").Return(nil)
+	a.On("Update", job.ID, "status", "error").Return(nil)
 
-	resultErr := job.Execute()
+	resultErr := jm.Execute(job)
+	time.Sleep(time.Millisecond)
 
 	if assert.Error(t, resultErr) {
 		assert.Equal(t, err, resultErr)
 	}
 
-	time.Sleep(time.Millisecond)
-	container.Mock.AssertExpectations(t)
-	acc.Mock.AssertExpectations(t)
+	cf.Mock.AssertExpectations(t)
+	c.Mock.AssertExpectations(t)
+	a.Mock.AssertExpectations(t)
 }
 
 func TestExecuteContainerInspectError(t *testing.T) {
-	err := errors.New("oops")
-	jobStep := JobStep{
-		Name:        "Step1",
-		Source:      "foo/bar",
-		Environment: []EnvVar{},
-	}
+	setUp()
 
-	job := &Job{
-		ID:    "123",
-		Steps: []JobStep{jobStep},
-	}
-
-	container := &mockContainer{}
-	container.On("Create").Return(nil)
-	container.On("Attach",
+	c.On("Create").Return(nil)
+	c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	container.On("Start").Return(nil)
-	container.On("Inspect").Return(err)
-	container.On("Remove").Return(nil)
+	c.On("Start").Return(nil)
+	c.On("Inspect").Return(err)
+	c.On("Remove").Return(nil)
 
-	mockFactory := &mockContainerFactory{}
-	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
-	containerFactory = mockFactory
+	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
 
-	acc := &mockAccessor{}
-	acc.On("Update", job.ID, "status", "running").Return(nil)
-	acc.On("Update", job.ID, "status", "error").Return(nil)
-	accessor = acc
+	a.On("Update", job.ID, "status", "running").Return(nil)
+	a.On("Update", job.ID, "status", "error").Return(nil)
 
-	resultErr := job.Execute()
+	resultErr := jm.Execute(job)
 
 	if assert.Error(t, resultErr) {
 		assert.Equal(t, err, resultErr)
 	}
 
-	container.Mock.AssertExpectations(t)
-	acc.Mock.AssertExpectations(t)
+	cf.Mock.AssertExpectations(t)
+	c.Mock.AssertExpectations(t)
+	a.Mock.AssertExpectations(t)
 }
 
 func TestExecuteOutputLogging(t *testing.T) {
+	setUp()
+
 	output := "line of output"
-	jobStep := JobStep{
-		Name:        "Step1",
-		Source:      "foo/bar",
-		Environment: []EnvVar{},
-	}
 
-	job := &Job{
-		ID:    "123",
-		Steps: []JobStep{jobStep},
-	}
-
-	container := &mockContainer{output: output}
-	container.On("Create").Return(nil)
-	container.On("Attach",
+	c = &mockContainer{output: output}
+	c.On("Create").Return(nil)
+	c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	container.On("Start").Return(nil)
-	container.On("Inspect").Return(nil)
-	container.On("Remove").Return(nil)
+	c.On("Start").Return(nil)
+	c.On("Inspect").Return(nil)
+	c.On("Remove").Return(nil)
 
-	mockFactory := &mockContainerFactory{}
-	mockFactory.On("NewContainer", jobStep.Source, []string{}).Return(container)
-	containerFactory = mockFactory
+	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
 
-	acc := &mockAccessor{}
-	acc.On("Update", job.ID, "status", "running").Return(nil)
-	acc.On("Update", job.ID, "completedSteps", "1").Return(nil)
-	acc.On("AppendLogLine", job.ID, output).Return(nil)
-	acc.On("Update", job.ID, "status", "complete").Return(nil)
-	accessor = acc
+	a.On("Update", job.ID, "status", "running").Return(nil)
+	a.On("Update", job.ID, "completedSteps", "1").Return(nil)
+	a.On("AppendLogLine", job.ID, output).Return(nil)
+	a.On("Update", job.ID, "status", "complete").Return(nil)
 
-	resultErr := job.Execute()
+	resultErr := jm.Execute(job)
 
 	assert.Nil(t, resultErr)
-	container.Mock.AssertExpectations(t)
-	acc.Mock.AssertExpectations(t)
+	cf.Mock.AssertExpectations(t)
+	c.Mock.AssertExpectations(t)
+	a.Mock.AssertExpectations(t)
 }
