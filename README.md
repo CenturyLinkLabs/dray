@@ -1,48 +1,24 @@
 
-## Running
+## Building
 
-As currently implemented, dray needs access to Redis (port 6379) and Docker (port 2375) running on the localhost (connection strings are currently hard-coded).
+The process of building the Dray container involves executing a Docker image 
+that, when executed, compiles the Dray code and generates an extremely small 
+image that contains nothing but the compiled binary.
 
-### Redis
-Simplest way to get Redis running is to run it in-container and map port 6379:
+The `build-dray.sh` script will execute the [centurylink\golang-builder](https://registry.hub.docker.com/u/centurylink/golang-builder/) image 
+with the appropriate arguments -- the end-result should be a new 
+`centurylink/dray` image in the `docker images` list.
 
-    docker run -d -p 6379:6379 redis
+### Running
+
+Before starting Dray, start Redis and then link Dray to that Redis container:
+
+    docker run -d --name redis redis
+    docker run -d --name dray --link redis:redis \
+      -v /var/run/docker.sock:/var/run/docker.sock -p 3009:3000 centurylink/dray:latest
+
+In the example above, the `-p` flag is used to map the Dray API endpoint 
+(listening on port 3000 in the container) to port 30009 on the host machine. In
+situtations where you don't need a mapped port (like when linking another
+container to the Dray container) the `-p` flag can be omitted.
     
-Make sure that port 6379 is also mapped in VirtualBox so that it is accessible from your host machine.
-
-### Docker
-You'll also need to bind the Docker daemon to a TCP port so that a client running outside the VM can interact with it.
-
-To do this in CoreOS (or any other platform where the Docker daemon is being managed by systemd) you'll need to create a file named `/etc/systemd/system/docker-tcp.socket` with the following contents
-
-	[Unit]
-	Description=Docker Socket for the API
-	
-	[Socket]
-	ListenStream=2375
-	BindIPv6Only=both
-	Service=docker.service
-	
-	[Install]
-	WantedBy=sockets.target
-
-Then enable the socket binding by issuing the following commands:
-
-	sudo systemctl enable docker-tcp.socket
-	sudo systemctl stop docker
-	sudo systemctl start docker-tcp.socket
-	sudo systemctl start docker
-	
-Note: When executing the steps above you may find that the docker service starts again immediately after the `systemctl stop docker` command. If this happens, the attempt to start the docker-tcp.socket may fail. If you experience this, try stopping any running containers you have before executing these steps.
-
-There are [instructions](https://coreos.com/docs/launching-containers/building/customizing-docker/#cloud-config) on the CoreOS site for doing this set-up automatically via cloud-config in case you don't want to manually set it up every time you start a new CoreOS instance.
-
-Similar to the Redis set-up above, make sure that port 2375 is mapped in VirtualBox so that it is accessible from your host.
-
-### Dray
-After completing the Redis and Docker configuration above you should be able to start dray by navigating to the root project directory an executing the following:
-
-    go run main.go
-
-
-   
