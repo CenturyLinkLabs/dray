@@ -2,32 +2,11 @@ package api
 
 import (
 	"bytes"
-	"io"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
-
-type mockRequestHelper struct {
-	mock.Mock
-}
-
-func (r *mockRequestHelper) Param(name string) string {
-	args := r.Mock.Called(name)
-	return args.String(0)
-}
-
-func (r *mockRequestHelper) Query(name string) string {
-	args := r.Mock.Called(name)
-	return args.String(0)
-}
-
-func (r *mockRequestHelper) Body() io.ReadCloser {
-	args := r.Mock.Called()
-	return args.Get(0).(io.ReadCloser)
-}
 
 func TestRequestWrapperQueryNoValue(t *testing.T) {
 	r, _ := http.NewRequest("GET", "/jobs?name=foo", nil)

@@ -3,7 +3,6 @@ package api // import "github.com/CenturyLinkLabs/dray/api"
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/CenturyLinkLabs/dray/job"
 	log "github.com/Sirupsen/logrus"
@@ -25,18 +24,14 @@ func NewServer(jm job.JobManager) *jobServer {
 }
 
 func (s *jobServer) Start(port int) {
-	router, err := s.createRouter()
-	if err != nil {
-		log.Errorf("error:", err)
-		os.Exit(1)
-	}
+	router := s.createRouter()
 
 	log.Infof("Server running on port %d", port)
 	portString := fmt.Sprintf(":%d", port)
 	http.ListenAndServe(portString, router)
 }
 
-func (s *jobServer) createRouter() (*mux.Router, error) {
+func (s *jobServer) createRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	m := map[string]map[string]handler{
@@ -76,5 +71,5 @@ func (s *jobServer) createRouter() (*mux.Router, error) {
 		}
 	}
 
-	return router, nil
+	return router
 }

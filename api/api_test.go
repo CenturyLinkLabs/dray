@@ -3,7 +3,9 @@ package api
 import (
 	"bytes"
 	"errors"
-	"io"
+	"fmt"
+	_ "io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -18,28 +20,12 @@ import (
 
 var (
 	j           *job.Job
-	notFoundErr error
-	serverErr   error
 	jm          *mockJobManager
-	r           *mockRequestHelper
-	w           *httptest.ResponseRecorder
+	svr         *httptest.Server
+	client      *http.Client
+	serverErr   error
+	notFoundErr error
 )
-
-type nopCloser struct {
-	io.Reader
-}
-
-func (nopCloser) Close() error { return nil }
-
-func setUp() {
-	j = &job.Job{ID: "123"}
-	jm = &mockJobManager{}
-	r = &mockRequestHelper{}
-	w = httptest.NewRecorder()
-	notFoundErr = job.NotFoundError(j.ID)
-	serverErr = errors.New("oops")
-
-}
 
 func init() {
 	log.SetLevel(log.PanicLevel)
@@ -96,18 +82,29 @@ func (m *mockJobManager) Delete(job *job.Job) error {
 	return args.Error(0)
 }
 
+func setUp() {
+	j = &job.Job{ID: "123"}
+	jm = &mockJobManager{}
+	jobServer := NewServer(jm)
+	svr = httptest.NewServer(jobServer.createRouter())
+	client = &http.Client{}
+	serverErr = errors.New("oops")
+	notFoundErr = job.NotFoundError(j.ID)
+}
+
 func TestListJobsSuccess(t *testing.T) {
 	setUp()
 
 	jobs := []job.Job{*j}
 	jm.On("ListAll").Return(jobs, nil)
 
-	listJobs(jm, r, w)
+	res, _ := http.Get(url("jobs"))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "[{\"id\":\"123\"}]\n", w.Body.String())
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "application/json", res.Header["Content-Type"][0])
+	assert.Equal(t, "[{\"id\":\"123\"}]\n", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestListJobsError(t *testing.T) {
@@ -115,99 +112,92 @@ func TestListJobsError(t *testing.T) {
 
 	jm.On("ListAll").Return(nil, serverErr)
 
-	listJobs(jm, r, w)
+	res, _ := http.Get(url("jobs"))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "text/plain; charset=utf-8", res.Header["Content-Type"][0])
+	assert.Equal(t, "", string(body))
+	jm.Mock.AssertExpectations(t)
 }
 
 func TestCreateJobSuccess(t *testing.T) {
 	setUp()
 	payload := "{\"name\":\"foo\"}\n"
-	body := nopCloser{bytes.NewBufferString(payload)}
 
 	jm.On("Create", mock.AnythingOfType("*job.Job")).Return(nil)
 	jm.On("Execute", mock.AnythingOfType("*job.Job")).Return(nil)
-	r.On("Body").Return(body)
 
-	createJob(jm, r, w)
+	res, _ := http.Post(url("jobs"), "application/json", bytes.NewBufferString(payload))
+	body, _ := ioutil.ReadAll(res.Body)
 	time.Sleep(time.Millisecond)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, payload, w.Body.String())
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, payload, string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestCreateJobJSONError(t *testing.T) {
 	setUp()
-	body := nopCloser{bytes.NewBufferString("")}
 
-	r.On("Body").Return(body)
+	res, _ := http.Post(url("jobs"), "application/json", bytes.NewBufferString(""))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	createJob(jm, r, w)
-
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestCreateJobError(t *testing.T) {
 	setUp()
-	body := nopCloser{bytes.NewBufferString("{}")}
 
 	jm.On("Create", mock.AnythingOfType("*job.Job")).Return(serverErr)
-	r.On("Body").Return(body)
 
-	createJob(jm, r, w)
+	res, _ := http.Post(url("jobs"), "application/json", bytes.NewBufferString("{}"))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestGetJobSuccess(t *testing.T) {
 	setUp()
 
 	jm.On("GetByID", j.ID).Return(j, nil)
-	r.On("Param", "jobid").Return(j.ID)
 
-	getJob(jm, r, w)
+	res, _ := http.Get(url("jobs/" + j.ID))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{\"id\":\"123\"}\n", w.Body.String())
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "{\"id\":\"123\"}\n", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestGetJobNotFound(t *testing.T) {
 	setUp()
 
 	jm.On("GetByID", j.ID).Return(nil, notFoundErr)
-	r.On("Param", "jobid").Return(j.ID)
 
-	getJob(jm, r, w)
+	res, _ := http.Get(url("jobs/" + j.ID))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestGetJobServerError(t *testing.T) {
 	setUp()
 
 	jm.On("GetByID", j.ID).Return(nil, serverErr)
-	r.On("Param", "jobid").Return(j.ID)
 
-	getJob(jm, r, w)
+	res, _ := http.Get(url("jobs/" + j.ID))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestGetJobLogSuccess(t *testing.T) {
@@ -217,31 +207,26 @@ func TestGetJobLogSuccess(t *testing.T) {
 
 	jm.On("GetByID", j.ID).Return(j, nil)
 	jm.On("GetLog", j, index).Return(jobLog, nil)
-	r.On("Param", "jobid").Return(j.ID)
-	r.On("Query", "index").Return(strconv.Itoa(index))
 
-	getJobLog(jm, r, w)
+	res, _ := http.Get(url("jobs/" + j.ID + "/log" + "?index=" + strconv.Itoa(index)))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "{\"lines\":[\"foo\",\"bar\"]}\n", w.Body.String())
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, "{\"lines\":[\"foo\",\"bar\"]}\n", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestGetJobLogNotFound(t *testing.T) {
 	setUp()
-	index := 99
 
 	jm.On("GetByID", j.ID).Return(nil, notFoundErr)
-	r.On("Param", "jobid").Return(j.ID)
-	r.On("Query", "index").Return(strconv.Itoa(index))
 
-	getJobLog(jm, r, w)
+	res, _ := http.Get(url("jobs/" + j.ID + "/log"))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestGetJobLogError(t *testing.T) {
@@ -250,15 +235,13 @@ func TestGetJobLogError(t *testing.T) {
 
 	jm.On("GetByID", j.ID).Return(j, nil)
 	jm.On("GetLog", j, index).Return(nil, serverErr)
-	r.On("Param", "jobid").Return(j.ID)
-	r.On("Query", "index").Return(strconv.Itoa(index))
 
-	getJobLog(jm, r, w)
+	res, _ := http.Get(url("jobs/" + j.ID + "/log" + "?index=" + strconv.Itoa(index)))
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestDeleteJobSuccess(t *testing.T) {
@@ -266,28 +249,28 @@ func TestDeleteJobSuccess(t *testing.T) {
 
 	jm.On("GetByID", j.ID).Return(j, nil)
 	jm.On("Delete", j).Return(nil)
-	r.On("Param", "jobid").Return(j.ID)
 
-	deleteJob(jm, r, w)
+	req, _ := http.NewRequest("DELETE", url("jobs/"+j.ID), nil)
+	res, _ := client.Do(req)
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNoContent, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusNoContent, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestDeleteJobNotFound(t *testing.T) {
 	setUp()
 
 	jm.On("GetByID", j.ID).Return(nil, notFoundErr)
-	r.On("Param", "jobid").Return(j.ID)
 
-	deleteJob(jm, r, w)
+	req, _ := http.NewRequest("DELETE", url("jobs/"+j.ID), nil)
+	res, _ := client.Do(req)
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
 }
 
 func TestDeleteJobError(t *testing.T) {
@@ -295,12 +278,16 @@ func TestDeleteJobError(t *testing.T) {
 
 	jm.On("GetByID", j.ID).Return(j, nil)
 	jm.On("Delete", j).Return(serverErr)
-	r.On("Param", "jobid").Return(j.ID)
 
-	deleteJob(jm, r, w)
+	req, _ := http.NewRequest("DELETE", url("jobs/"+j.ID), nil)
+	res, _ := client.Do(req)
+	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Equal(t, "", w.Body.String())
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	assert.Equal(t, "", string(body))
 	jm.Mock.AssertExpectations(t)
-	r.Mock.AssertExpectations(t)
+}
+
+func url(path string) string {
+	return fmt.Sprintf("%s/%s", svr.URL, path)
 }
