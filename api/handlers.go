@@ -7,9 +7,10 @@ import (
 
 	"github.com/CenturyLinkLabs/dray/job"
 	log "github.com/Sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
-func listJobs(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+func listJobs(jm job.JobManager, r *http.Request, w http.ResponseWriter) {
 	jobs, err := jm.ListAll()
 	if err != nil {
 		handleErr(err, w)
@@ -19,9 +20,9 @@ func listJobs(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(jobs)
 }
 
-func createJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
+func createJob(jm job.JobManager, r *http.Request, w http.ResponseWriter) {
 	j := &job.Job{}
-	err := json.NewDecoder(r.Body()).Decode(j)
+	err := json.NewDecoder(r.Body).Decode(j)
 	if err != nil {
 		handleErr(err, w)
 		return
@@ -42,8 +43,9 @@ func createJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(j)
 }
 
-func getJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
-	j, err := jm.GetByID(r.Param("jobid"))
+func getJob(jm job.JobManager, r *http.Request, w http.ResponseWriter) {
+	jobID := mux.Vars(r)["jobid"]
+	j, err := jm.GetByID(jobID)
 
 	if err != nil {
 		handleErr(err, w)
@@ -53,13 +55,16 @@ func getJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(j)
 }
 
-func getJobLog(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
-	index, err := strconv.Atoi(r.Query("index"))
+func getJobLog(jm job.JobManager, r *http.Request, w http.ResponseWriter) {
+	jobID := mux.Vars(r)["jobid"]
+
+	indexQuery := querystringValue(r, "index")
+	index, err := strconv.Atoi(indexQuery)
 	if err != nil {
 		index = 0
 	}
 
-	j, err := jm.GetByID(r.Param("jobid"))
+	j, err := jm.GetByID(jobID)
 	if err != nil {
 		handleErr(err, w)
 		return
@@ -74,8 +79,10 @@ func getJobLog(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(log)
 }
 
-func deleteJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
-	j, err := jm.GetByID(r.Param("jobid"))
+func deleteJob(jm job.JobManager, r *http.Request, w http.ResponseWriter) {
+	jobID := mux.Vars(r)["jobid"]
+
+	j, err := jm.GetByID(jobID)
 	if err != nil {
 		handleErr(err, w)
 		return
@@ -88,6 +95,16 @@ func deleteJob(jm job.JobManager, r requestHelper, w http.ResponseWriter) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func querystringValue(r *http.Request, key string) string {
+	v := r.URL.Query()[key]
+
+	if len(v) == 0 {
+		return ""
+	}
+
+	return v[0]
 }
 
 func handleErr(err error, w http.ResponseWriter) {

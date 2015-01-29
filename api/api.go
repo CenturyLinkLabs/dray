@@ -13,7 +13,7 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type handler func(jm job.JobManager, r requestHelper, w http.ResponseWriter)
+type handler func(jm job.JobManager, r *http.Request, w http.ResponseWriter)
 
 type jobServer struct {
 	jobManager job.JobManager
@@ -55,15 +55,13 @@ func (s *jobServer) createRouter() *mux.Router {
 			localRoute := route
 			localFct := fct
 			wrap := func(w http.ResponseWriter, r *http.Request) {
-				wrappedRequest := &requestWrapper{httpRequest: r}
-
 				log.Infof("%s %s", r.Method, r.RequestURI)
 
 				if localMethod != "DELETE" {
 					w.Header().Set("Content-Type", "application/json")
 				}
 
-				localFct(s.jobManager, wrappedRequest, w)
+				localFct(s.jobManager, r, w)
 			}
 
 			router.Path("/v{version:[0-9.]+}" + localRoute).Methods(localMethod).HandlerFunc(wrap)
