@@ -2,6 +2,7 @@ package job
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
@@ -81,6 +82,7 @@ func (a *redisJobAccessor) Create(job *Job) error {
 
 	reply := a.command("rpush", jobsKey, job.ID)
 	if reply.Err != nil {
+		fmt.Println(reply.Err)
 		return reply.Err
 	}
 
@@ -130,7 +132,16 @@ func (a *redisJobAccessor) command(cmd string, args ...interface{}) *redis.Reply
 	}
 	defer a.pool.Put(client)
 
-	return client.Cmd(cmd, args...)
+	reply := client.Cmd(cmd, args...)
+
+	// Use a more friendly error message for connection problems
+	if reply.Err != nil {
+		if _, ok := reply.Err.(*redis.CmdError); !ok {
+			reply.Err = errors.New("Redis connection error")
+		}
+	}
+
+	return reply
 }
 
 func jobKey(jobID string) string {

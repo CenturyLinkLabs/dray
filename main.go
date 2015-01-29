@@ -14,6 +14,10 @@ const (
 	DefaultDockerEndpoint = "unix:///var/run/docker.sock"
 )
 
+func init() {
+	log.SetLevel(log.InfoLevel)
+}
+
 func main() {
 	port := flag.Int("p", 3000, "port on which the server will run")
 	flag.Parse()

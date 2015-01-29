@@ -129,7 +129,7 @@ func (suite *APITestSuite) TestCreateJobSuccess() {
 	body, _ := ioutil.ReadAll(res.Body)
 	time.Sleep(time.Millisecond)
 
-	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal(http.StatusCreated, res.StatusCode)
 	suite.Equal(payload, string(body))
 	suite.jm.Mock.AssertExpectations(suite.T())
 }

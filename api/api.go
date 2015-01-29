@@ -15,6 +15,16 @@ func init() {
 
 type handler func(jm job.JobManager, r *http.Request, w http.ResponseWriter)
 
+type statusLoggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *statusLoggingResponseWriter) WriteHeader(code int) {
+	w.statusCode = code
+	w.ResponseWriter.WriteHeader(code)
+}
+
 type jobServer struct {
 	jobManager job.JobManager
 }
@@ -55,15 +65,18 @@ func (s *jobServer) createRouter() *mux.Router {
 			localRoute := route
 			localFct := fct
 			wrap := func(w http.ResponseWriter, r *http.Request) {
-				log.Infof("%s %s", r.Method, r.RequestURI)
+				ww := &statusLoggingResponseWriter{w, 200}
+
+				log.Infof("Started %s %s", r.Method, r.RequestURI)
 
 				if localMethod != "DELETE" {
 					w.Header().Set("Content-Type", "application/json")
 				}
 
-				localFct(s.jobManager, r, w)
-			}
+				localFct(s.jobManager, r, ww)
 
+				log.Infof("Completed %d", ww.statusCode)
+			}
 			router.Path("/v{version:[0-9.]+}" + localRoute).Methods(localMethod).HandlerFunc(wrap)
 			router.Path(localRoute).Methods(localMethod).HandlerFunc(wrap)
 		}

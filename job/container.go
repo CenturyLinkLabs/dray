@@ -64,7 +64,7 @@ func (c *dockerContainer) Create() error {
 
 	if err == nil {
 		c.ID = container.ID
-		log.Debugf("Container %s created", c)
+		log.Infof("Container %s created from %s", c, c.Source)
 	}
 
 	return err
@@ -90,7 +90,7 @@ func (c *dockerContainer) Start() error {
 	err := c.client.StartContainer(c.ID, nil)
 
 	if err == nil {
-		log.Debugf("Container %s started", c)
+		log.Infof("Container %s started", c)
 	}
 
 	return err
@@ -118,7 +118,7 @@ func (c *dockerContainer) Remove() error {
 	err := c.client.RemoveContainer(removeOpts)
 
 	if err == nil {
-		log.Debugf("Container %s removed", c)
+		log.Infof("Container %s removed", c)
 	}
 
 	return err
@@ -128,6 +128,7 @@ func (c *dockerContainer) ensureImage() error {
 	_, err := c.client.InspectImage(c.Source)
 	if err == docker.ErrNoSuchImage {
 
+		log.Infof("Pulling image %s", c.Source)
 		if err = c.pullImage(); err != nil {
 			return err
 		}

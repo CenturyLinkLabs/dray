@@ -40,6 +40,7 @@ func createJob(jm job.JobManager, r *http.Request, w http.ResponseWriter) {
 		}
 	}()
 
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(j)
 }
 
