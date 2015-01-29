@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 )
 
-var (
+type JobTestSuite struct {
+	suite.Suite
+
 	job  *Job
 	step *JobStep
 	jm   *jobManager
@@ -17,198 +19,171 @@ var (
 	cf   *mockContainerFactory
 	c    *mockContainer
 	err  error
-)
+}
 
-func setUp() {
-	step = &JobStep{
+func (suite *JobTestSuite) SetupTest() {
+	suite.step = &JobStep{
 		Name:        "Step1",
 		Source:      "foo/bar",
-		Environment: []EnvVar{EnvVar{Variable: "y", Value: "2"}},
+		Environment: []EnvVar{{Variable: "y", Value: "2"}},
 	}
 
-	job = &Job{
+	suite.job = &Job{
+		ID:          "123",
 		Name:        "foo",
-		Environment: []EnvVar{EnvVar{Variable: "x", Value: "1"}},
-		Steps:       []JobStep{*step},
+		Environment: []EnvVar{{Variable: "x", Value: "1"}},
+		Steps:       []JobStep{*suite.step},
 	}
 
-	a = &mockAccessor{}
-	c = &mockContainer{}
-	cf = &mockContainerFactory{}
+	suite.a = &mockAccessor{}
+	suite.c = &mockContainer{}
+	suite.cf = &mockContainerFactory{}
 
-	jm = &jobManager{accessor: a, containerFactory: cf}
-	err = errors.New("oops")
+	suite.jm = &jobManager{accessor: suite.a, containerFactory: suite.cf}
+	suite.err = errors.New("oops")
 }
 
-func TestListAll(t *testing.T) {
-	setUp()
-	jobs := []Job{*job}
-
-	a.On("All").Return(jobs, err)
-
-	resultJobs, resultErr := jm.ListAll()
-
-	assert.Equal(t, jobs, resultJobs)
-	assert.Equal(t, err, resultErr)
-	a.Mock.AssertExpectations(t)
+func (suite *JobTestSuite) TearDownTest() {
+	suite.cf.Mock.AssertExpectations(suite.T())
+	suite.c.Mock.AssertExpectations(suite.T())
+	suite.a.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetByID(t *testing.T) {
-	setUp()
+func (suite *JobTestSuite) TestListAll() {
+	jobs := []Job{*suite.job}
+
+	suite.a.On("All").Return(jobs, suite.err)
+
+	resultJobs, resultErr := suite.jm.ListAll()
+
+	suite.Equal(jobs, resultJobs)
+	suite.Equal(suite.err, resultErr)
+}
+
+func (suite *JobTestSuite) TestGetByID() {
 	id := "123"
 
-	a.On("Get", id).Return(job, err)
+	suite.a.On("Get", id).Return(suite.job, suite.err)
 
-	resultJob, resultErr := jm.GetByID(id)
+	resultJob, resultErr := suite.jm.GetByID(id)
 
-	assert.Equal(t, job, resultJob)
-	assert.Equal(t, err, resultErr)
-	a.Mock.AssertExpectations(t)
+	suite.Equal(suite.job, resultJob)
+	suite.Equal(suite.err, resultErr)
 }
 
-func TestCreate(t *testing.T) {
-	setUp()
+func (suite *JobTestSuite) TestCreate() {
+	suite.a.On("Create", suite.job).Return(suite.err)
 
-	a.On("Create", job).Return(err)
+	resultErr := suite.jm.Create(suite.job)
 
-	resultErr := jm.Create(job)
-
-	assert.Equal(t, err, resultErr)
-	a.Mock.AssertExpectations(t)
+	suite.Equal(suite.err, resultErr)
 }
 
-func TestDelete(t *testing.T) {
-	a.On("Delete", job.ID).Return(err)
+func (suite *JobTestSuite) TestDelete() {
+	suite.a.On("Delete", suite.job.ID).Return(suite.err)
 
-	resultErr := jm.Delete(job)
+	resultErr := suite.jm.Delete(suite.job)
 
-	assert.Equal(t, err, resultErr)
-	a.Mock.AssertExpectations(t)
+	suite.Equal(suite.err, resultErr)
 }
 
-func TestGetLog(t *testing.T) {
+func (suite *JobTestSuite) TestGetLog() {
 	index := 3
 	jobLog := &JobLog{Index: 3}
 
-	a.On("GetJobLog", job.ID, index).Return(jobLog, err)
+	suite.a.On("GetJobLog", suite.job.ID, index).Return(jobLog, suite.err)
 
-	resultLog, resultErr := jm.GetLog(job, index)
+	resultLog, resultErr := suite.jm.GetLog(suite.job, index)
 
-	assert.Equal(t, jobLog, resultLog)
-	assert.Equal(t, err, resultErr)
-	a.Mock.AssertExpectations(t)
+	suite.Equal(jobLog, resultLog)
+	suite.Equal(suite.err, resultErr)
 }
 
-func TestExecuteSuccess(t *testing.T) {
-	setUp()
-
-	c.On("Create").Return(nil)
-	c.On("Attach",
+func (suite *JobTestSuite) TestExecuteSuccess() {
+	suite.c.On("Create").Return(nil)
+	suite.c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	c.On("Start").Return(nil)
-	c.On("Inspect").Return(nil)
-	c.On("Remove").Return(nil)
+	suite.c.On("Start").Return(nil)
+	suite.c.On("Inspect").Return(nil)
+	suite.c.On("Remove").Return(nil)
 
-	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
+	suite.cf.On("NewContainer", suite.step.Source, []string{"y=2", "x=1"}).Return(suite.c)
 
-	a.On("Update", job.ID, "status", "running").Return(nil)
-	a.On("Update", job.ID, "completedSteps", "1").Return(nil)
-	a.On("Update", job.ID, "status", "complete").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "running").Return(nil)
+	suite.a.On("Update", suite.job.ID, "completedSteps", "1").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "complete").Return(nil)
 
-	resultErr := jm.Execute(job)
+	resultErr := suite.jm.Execute(suite.job)
 	time.Sleep(time.Millisecond)
 
-	assert.Nil(t, resultErr)
-	cf.Mock.AssertExpectations(t)
-	c.Mock.AssertExpectations(t)
-	a.Mock.AssertExpectations(t)
+	suite.Nil(resultErr)
 }
 
-func TestExecuteContainerCreateError(t *testing.T) {
-	setUp()
+func (suite *JobTestSuite) TestExecuteContainerCreateError() {
+	suite.c.On("Create").Return(suite.err)
 
-	c.On("Create").Return(err)
+	suite.cf.On("NewContainer", suite.step.Source, []string{"y=2", "x=1"}).Return(suite.c)
 
-	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
+	suite.a.On("Update", suite.job.ID, "status", "running").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "error").Return(nil)
 
-	a.On("Update", job.ID, "status", "running").Return(nil)
-	a.On("Update", job.ID, "status", "error").Return(nil)
+	resultErr := suite.jm.Execute(suite.job)
 
-	resultErr := jm.Execute(job)
-
-	if assert.Error(t, resultErr) {
-		assert.Equal(t, err, resultErr)
+	if suite.Error(resultErr) {
+		suite.Equal(suite.err, resultErr)
 	}
-
-	cf.Mock.AssertExpectations(t)
-	c.Mock.AssertExpectations(t)
-	a.Mock.AssertExpectations(t)
 }
 
-func TestExecuteContainerStartError(t *testing.T) {
-	setUp()
-
-	c.On("Create").Return(nil)
-	c.On("Attach",
+func (suite *JobTestSuite) TestExecuteContainerStartError() {
+	suite.c.On("Create").Return(nil)
+	suite.c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	c.On("Start").Return(err)
-	c.On("Remove").Return(nil)
+	suite.c.On("Start").Return(suite.err)
+	suite.c.On("Remove").Return(nil)
 
-	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
+	suite.cf.On("NewContainer", suite.step.Source, []string{"y=2", "x=1"}).Return(suite.c)
 
-	a.On("Update", job.ID, "status", "running").Return(nil)
-	a.On("Update", job.ID, "status", "error").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "running").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "error").Return(nil)
 
-	resultErr := jm.Execute(job)
+	resultErr := suite.jm.Execute(suite.job)
 	time.Sleep(time.Millisecond)
 
-	if assert.Error(t, resultErr) {
-		assert.Equal(t, err, resultErr)
+	if suite.Error(resultErr) {
+		suite.Equal(suite.err, resultErr)
 	}
-
-	cf.Mock.AssertExpectations(t)
-	c.Mock.AssertExpectations(t)
-	a.Mock.AssertExpectations(t)
 }
 
-func TestExecuteContainerInspectError(t *testing.T) {
-	setUp()
-
-	c.On("Create").Return(nil)
-	c.On("Attach",
+func (suite *JobTestSuite) TestExecuteContainerInspectError() {
+	suite.c.On("Create").Return(nil)
+	suite.c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer"),
 		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
-	c.On("Start").Return(nil)
-	c.On("Inspect").Return(err)
-	c.On("Remove").Return(nil)
+	suite.c.On("Start").Return(nil)
+	suite.c.On("Inspect").Return(suite.err)
+	suite.c.On("Remove").Return(nil)
 
-	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
+	suite.cf.On("NewContainer", suite.step.Source, []string{"y=2", "x=1"}).Return(suite.c)
 
-	a.On("Update", job.ID, "status", "running").Return(nil)
-	a.On("Update", job.ID, "status", "error").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "running").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "error").Return(nil)
 
-	resultErr := jm.Execute(job)
+	resultErr := suite.jm.Execute(suite.job)
 
-	if assert.Error(t, resultErr) {
-		assert.Equal(t, err, resultErr)
+	if suite.Error(resultErr) {
+		suite.Equal(suite.err, resultErr)
 	}
-
-	cf.Mock.AssertExpectations(t)
-	c.Mock.AssertExpectations(t)
-	a.Mock.AssertExpectations(t)
 }
 
-func TestExecuteOutputLogging(t *testing.T) {
-	setUp()
-
+func (suite *JobTestSuite) TestExecuteOutputLogging() {
 	output := "line of output"
 
-	c = &mockContainer{output: output}
+	c := &mockContainer{output: output}
 	c.On("Create").Return(nil)
 	c.On("Attach",
 		mock.AnythingOfType("*bytes.Buffer"),
@@ -218,17 +193,18 @@ func TestExecuteOutputLogging(t *testing.T) {
 	c.On("Inspect").Return(nil)
 	c.On("Remove").Return(nil)
 
-	cf.On("NewContainer", step.Source, []string{"y=2", "x=1"}).Return(c)
+	suite.cf.On("NewContainer", suite.step.Source, []string{"y=2", "x=1"}).Return(c)
 
-	a.On("Update", job.ID, "status", "running").Return(nil)
-	a.On("Update", job.ID, "completedSteps", "1").Return(nil)
-	a.On("AppendLogLine", job.ID, output).Return(nil)
-	a.On("Update", job.ID, "status", "complete").Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "running").Return(nil)
+	suite.a.On("Update", suite.job.ID, "completedSteps", "1").Return(nil)
+	suite.a.On("AppendLogLine", suite.job.ID, output).Return(nil)
+	suite.a.On("Update", suite.job.ID, "status", "complete").Return(nil)
 
-	resultErr := jm.Execute(job)
+	resultErr := suite.jm.Execute(suite.job)
 
-	assert.Nil(t, resultErr)
-	cf.Mock.AssertExpectations(t)
-	c.Mock.AssertExpectations(t)
-	a.Mock.AssertExpectations(t)
+	suite.Nil(resultErr)
+}
+
+func TestJobTestSuite(t *testing.T) {
+	suite.Run(t, new(JobTestSuite))
 }
