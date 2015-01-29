@@ -3,28 +3,18 @@ package api
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	_ "io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/CenturyLinkLabs/dray/job"
 	log "github.com/Sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-)
-
-var (
-	j           *job.Job
-	jm          *mockJobManager
-	svr         *httptest.Server
-	client      *http.Client
-	serverErr   error
-	notFoundErr error
+	"github.com/stretchr/testify/suite"
 )
 
 func init() {
@@ -82,212 +72,204 @@ func (m *mockJobManager) Delete(job *job.Job) error {
 	return args.Error(0)
 }
 
-func setUp() {
-	j = &job.Job{ID: "123"}
-	jm = &mockJobManager{}
-	jobServer := NewServer(jm)
-	svr = httptest.NewServer(jobServer.createRouter())
-	client = &http.Client{}
-	serverErr = errors.New("oops")
-	notFoundErr = job.NotFoundError(j.ID)
+type APITestSuite struct {
+	suite.Suite
+
+	j           *job.Job
+	jm          *mockJobManager
+	svr         *httptest.Server
+	client      *http.Client
+	serverErr   error
+	notFoundErr error
 }
 
-func TestListJobsSuccess(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) SetupTest() {
+	suite.j = &job.Job{ID: "123"}
+	suite.jm = &mockJobManager{}
 
-	jobs := []job.Job{*j}
-	jm.On("ListAll").Return(jobs, nil)
+	suite.svr = httptest.NewServer(NewServer(suite.jm).createRouter())
+	suite.client = &http.Client{}
 
-	res, _ := http.Get(url("jobs"))
+	suite.serverErr = errors.New("oops")
+	suite.notFoundErr = job.NotFoundError(suite.j.ID)
+}
+
+func (suite *APITestSuite) TestListJobsSuccess() {
+	jobs := []job.Job{*suite.j}
+	suite.jm.On("ListAll").Return(jobs, nil)
+
+	res, _ := http.Get(suite.url("jobs"))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "application/json", res.Header["Content-Type"][0])
-	assert.Equal(t, "[{\"id\":\"123\"}]\n", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal("application/json", res.Header["Content-Type"][0])
+	suite.Equal("[{\"id\":\"123\"}]\n", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestListJobsError(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestListJobsError() {
+	suite.jm.On("ListAll").Return(nil, suite.serverErr)
 
-	jm.On("ListAll").Return(nil, serverErr)
-
-	res, _ := http.Get(url("jobs"))
+	res, _ := http.Get(suite.url("jobs"))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	assert.Equal(t, "text/plain; charset=utf-8", res.Header["Content-Type"][0])
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("text/plain; charset=utf-8", res.Header["Content-Type"][0])
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestCreateJobSuccess(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestCreateJobSuccess() {
 	payload := "{\"name\":\"foo\"}\n"
 
-	jm.On("Create", mock.AnythingOfType("*job.Job")).Return(nil)
-	jm.On("Execute", mock.AnythingOfType("*job.Job")).Return(nil)
+	suite.jm.On("Create", mock.AnythingOfType("*job.Job")).Return(nil)
+	suite.jm.On("Execute", mock.AnythingOfType("*job.Job")).Return(nil)
 
-	res, _ := http.Post(url("jobs"), "application/json", bytes.NewBufferString(payload))
+	res, _ := http.Post(suite.url("jobs"), "application/json", bytes.NewBufferString(payload))
 	body, _ := ioutil.ReadAll(res.Body)
 	time.Sleep(time.Millisecond)
 
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, payload, string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal(payload, string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestCreateJobJSONError(t *testing.T) {
-	setUp()
-
-	res, _ := http.Post(url("jobs"), "application/json", bytes.NewBufferString(""))
+func (suite *APITestSuite) TestCreateJobJSONError() {
+	res, _ := http.Post(suite.url("jobs"), "application/json", bytes.NewBufferString(""))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestCreateJobError(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestCreateJobError() {
+	suite.jm.On("Create", mock.AnythingOfType("*job.Job")).Return(suite.serverErr)
 
-	jm.On("Create", mock.AnythingOfType("*job.Job")).Return(serverErr)
-
-	res, _ := http.Post(url("jobs"), "application/json", bytes.NewBufferString("{}"))
+	res, _ := http.Post(suite.url("jobs"), "application/json", bytes.NewBufferString("{}"))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetJobSuccess(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestGetJobSuccess() {
+	suite.jm.On("GetByID", suite.j.ID).Return(suite.j, nil)
 
-	jm.On("GetByID", j.ID).Return(j, nil)
-
-	res, _ := http.Get(url("jobs/" + j.ID))
+	res, _ := http.Get(suite.url("jobs", suite.j.ID))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "{\"id\":\"123\"}\n", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal("{\"id\":\"123\"}\n", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetJobNotFound(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestGetJobNotFound() {
+	suite.jm.On("GetByID", suite.j.ID).Return(nil, suite.notFoundErr)
 
-	jm.On("GetByID", j.ID).Return(nil, notFoundErr)
-
-	res, _ := http.Get(url("jobs/" + j.ID))
+	res, _ := http.Get(suite.url("jobs", suite.j.ID))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetJobServerError(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestGetJobServerError() {
+	suite.jm.On("GetByID", suite.j.ID).Return(nil, suite.serverErr)
 
-	jm.On("GetByID", j.ID).Return(nil, serverErr)
-
-	res, _ := http.Get(url("jobs/" + j.ID))
+	res, _ := http.Get(suite.url("jobs", suite.j.ID))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetJobLogSuccess(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestGetJobLogSuccess() {
 	index := 99
 	jobLog := &job.JobLog{Lines: []string{"foo", "bar"}}
 
-	jm.On("GetByID", j.ID).Return(j, nil)
-	jm.On("GetLog", j, index).Return(jobLog, nil)
+	suite.jm.On("GetByID", suite.j.ID).Return(suite.j, nil)
+	suite.jm.On("GetLog", suite.j, index).Return(jobLog, nil)
 
-	res, _ := http.Get(url("jobs/" + j.ID + "/log" + "?index=" + strconv.Itoa(index)))
+	res, _ := http.Get(suite.url("jobs", suite.j.ID, "log") + "?index=" + strconv.Itoa(index))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Equal(t, "{\"lines\":[\"foo\",\"bar\"]}\n", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusOK, res.StatusCode)
+	suite.Equal("{\"lines\":[\"foo\",\"bar\"]}\n", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetJobLogNotFound(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestGetJobLogNotFound() {
+	suite.jm.On("GetByID", suite.j.ID).Return(nil, suite.notFoundErr)
 
-	jm.On("GetByID", j.ID).Return(nil, notFoundErr)
-
-	res, _ := http.Get(url("jobs/" + j.ID + "/log"))
+	res, _ := http.Get(suite.url("jobs", suite.j.ID, "log"))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestGetJobLogError(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestGetJobLogError() {
 	index := 99
 
-	jm.On("GetByID", j.ID).Return(j, nil)
-	jm.On("GetLog", j, index).Return(nil, serverErr)
+	suite.jm.On("GetByID", suite.j.ID).Return(suite.j, nil)
+	suite.jm.On("GetLog", suite.j, index).Return(nil, suite.serverErr)
 
-	res, _ := http.Get(url("jobs/" + j.ID + "/log" + "?index=" + strconv.Itoa(index)))
+	res, _ := http.Get(suite.url("jobs", suite.j.ID, "log") + "?index=" + strconv.Itoa(index))
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestDeleteJobSuccess(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestDeleteJobSuccess() {
+	suite.jm.On("GetByID", suite.j.ID).Return(suite.j, nil)
+	suite.jm.On("Delete", suite.j).Return(nil)
 
-	jm.On("GetByID", j.ID).Return(j, nil)
-	jm.On("Delete", j).Return(nil)
-
-	req, _ := http.NewRequest("DELETE", url("jobs/"+j.ID), nil)
-	res, _ := client.Do(req)
+	req, _ := http.NewRequest("DELETE", suite.url("jobs", suite.j.ID), nil)
+	res, _ := suite.client.Do(req)
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNoContent, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusNoContent, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestDeleteJobNotFound(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestDeleteJobNotFound() {
+	suite.jm.On("GetByID", suite.j.ID).Return(nil, suite.notFoundErr)
 
-	jm.On("GetByID", j.ID).Return(nil, notFoundErr)
-
-	req, _ := http.NewRequest("DELETE", url("jobs/"+j.ID), nil)
-	res, _ := client.Do(req)
+	req, _ := http.NewRequest("DELETE", suite.url("jobs", suite.j.ID), nil)
+	res, _ := suite.client.Do(req)
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusNotFound, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func TestDeleteJobError(t *testing.T) {
-	setUp()
+func (suite *APITestSuite) TestDeleteJobError() {
+	suite.jm.On("GetByID", suite.j.ID).Return(suite.j, nil)
+	suite.jm.On("Delete", suite.j).Return(suite.serverErr)
 
-	jm.On("GetByID", j.ID).Return(j, nil)
-	jm.On("Delete", j).Return(serverErr)
-
-	req, _ := http.NewRequest("DELETE", url("jobs/"+j.ID), nil)
-	res, _ := client.Do(req)
+	req, _ := http.NewRequest("DELETE", suite.url("jobs", suite.j.ID), nil)
+	res, _ := suite.client.Do(req)
 	body, _ := ioutil.ReadAll(res.Body)
 
-	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
-	assert.Equal(t, "", string(body))
-	jm.Mock.AssertExpectations(t)
+	suite.Equal(http.StatusInternalServerError, res.StatusCode)
+	suite.Equal("", string(body))
+	suite.jm.Mock.AssertExpectations(suite.T())
 }
 
-func url(path string) string {
-	return fmt.Sprintf("%s/%s", svr.URL, path)
+func (suite *APITestSuite) url(parts ...string) string {
+	parts = append([]string{suite.svr.URL}, parts...)
+	return strings.Join(parts, "/")
+}
+
+func TestAPITestSuite(t *testing.T) {
+	suite.Run(t, new(APITestSuite))
 }
