@@ -4,6 +4,7 @@ import (
 	"flag"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/CenturyLinkLabs/dray/api"
 	"github.com/CenturyLinkLabs/dray/job"
@@ -12,13 +13,17 @@ import (
 
 const (
 	DefaultDockerEndpoint = "unix:///var/run/docker.sock"
+	DefaultLogLevel       = log.InfoLevel
 )
 
 func init() {
-	log.SetLevel(log.InfoLevel)
+	log.SetOutput(os.Stdout)
+	log.SetLevel(DefaultLogLevel)
 }
 
 func main() {
+	log.SetLevel(logLevel())
+
 	port := flag.Int("p", 3000, "port on which the server will run")
 	flag.Parse()
 
@@ -54,4 +59,20 @@ func dockerEndpoint() string {
 	}
 
 	return endpoint
+}
+
+func logLevel() log.Level {
+	levelString := os.Getenv("LOG_LEVEL")
+
+	if len(levelString) == 0 {
+		return DefaultLogLevel
+	}
+
+	level, err := log.ParseLevel(strings.ToLower(levelString))
+	if err != nil {
+		log.Errorf("Invalid log level: %s", levelString)
+		return DefaultLogLevel
+	}
+
+	return level
 }
