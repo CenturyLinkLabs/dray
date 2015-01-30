@@ -1,0 +1,68 @@
+{
+	"ImportPath": "github.com/CenturyLinkLabs/dray",
+	"GoVersion": "go1.4.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.6.4-6-g539d4dc",
+			"Rev": "539d4dc034c079a7188b5d4ca9650632d73c66e8"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/archive",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/fileutils",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/ioutils",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/pools",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/promise",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/system",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar",
+			"Comment": "v1.4.1-799-g144ae9b",
+			"Rev": "144ae9b0c70ace8eb2e0336c7a4f6c479774fda1"
+		},
+		{
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Rev": "0758f407f25a8df60c540b0ec758905192687e14"
+		},
+		{
+			"ImportPath": "github.com/fzzy/radix/extra/pool",
+			"Comment": "v0.5.2-1-g019b4f7",
+			"Rev": "019b4f7e600f22fb2a98b4634fbff4a8737d8047"
+		},
+		{
+			"ImportPath": "github.com/fzzy/radix/redis",
+			"Comment": "v0.5.2-1-g019b4f7",
+			"Rev": "019b4f7e600f22fb2a98b4634fbff4a8737d8047"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
+		}
+	]
+}
