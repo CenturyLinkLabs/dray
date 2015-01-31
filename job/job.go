@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -14,7 +13,6 @@ import (
 const (
 	BeginDelimiter = "----BEGIN PANAMAX DATA----"
 	EndDelimiter   = "----END PANAMAX DATA----"
-	EOT            = byte('\u0003')
 )
 
 type Job struct {
@@ -111,8 +109,7 @@ func (jm *jobManager) Delete(job *Job) error {
 }
 
 func (jm *jobManager) executeStep(job *Job, stepIndex int, stdIn io.Reader) (io.Reader, error) {
-	stdOut := &bytes.Buffer{}
-	stdErr := &bytes.Buffer{}
+	stdOutReader, stdOutWriter := io.Pipe()
 	step := job.Steps[stepIndex]
 
 	// Each step gets its own environment, plus the job-level environment
@@ -126,18 +123,15 @@ func (jm *jobManager) executeStep(job *Job, stepIndex int, stdIn io.Reader) (io.
 	defer container.Remove()
 
 	go func() {
-		container.Attach(stdIn, stdOut, stdErr)
-		stdOut.Write([]byte{EOT, '\n'})
+		container.Attach(stdIn, stdOutWriter, nil)
+		stdOutWriter.Close()
 	}()
 
 	if err := container.Start(); err != nil {
 		return nil, err
 	}
 
-	output, err := jm.captureOutput(job, stdOut)
-	if err != nil {
-		return nil, err
-	}
+	output := jm.captureOutput(job, stdOutReader)
 	log.Debugf("Container %s stopped", container)
 
 	if err := container.Inspect(); err != nil {
@@ -147,37 +141,31 @@ func (jm *jobManager) executeStep(job *Job, stepIndex int, stdIn io.Reader) (io.
 	return output, nil
 }
 
-func (jm *jobManager) captureOutput(job *Job, r io.Reader) (io.Reader, error) {
-	reader := bufio.NewReader(r)
+func (jm *jobManager) captureOutput(job *Job, r io.Reader) io.Reader {
+	scanner := bufio.NewScanner(r)
 	buffer := &bytes.Buffer{}
 	capture := false
 
-	for {
-		line, _ := reader.ReadBytes('\n')
+	for scanner.Scan() {
+		line := scanner.Text()
+		log.Debugf(line)
 
-		if len(line) > 0 {
-			if line[0] == EOT {
-				break
-			}
-			s := strings.TrimSpace(string(line))
-			log.Debugf(s)
-			jm.accessor.AppendLogLine(job.ID, s)
+		jm.accessor.AppendLogLine(job.ID, line)
 
-			if s == EndDelimiter {
-				capture = false
-			}
+		if line == EndDelimiter {
+			capture = false
+		}
 
-			if capture {
-				buffer.WriteString(s + "\n")
-			}
+		if capture {
+			buffer.WriteString(line + "\n")
+		}
 
-			if s == BeginDelimiter {
-				capture = true
-			}
+		if line == BeginDelimiter {
+			capture = true
 		}
 	}
 
-	return buffer, nil
+	return buffer
 }
 
 func stringifyEnvironment(env []EnvVar) []string {

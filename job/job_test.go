@@ -102,9 +102,9 @@ func (suite *JobTestSuite) TestGetLog() {
 func (suite *JobTestSuite) TestExecuteSuccess() {
 	suite.c.On("Create").Return(nil)
 	suite.c.On("Attach",
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(nil)
 	suite.c.On("Start").Return(nil)
 	suite.c.On("Inspect").Return(nil)
 	suite.c.On("Remove").Return(nil)
@@ -139,9 +139,9 @@ func (suite *JobTestSuite) TestExecuteContainerCreateError() {
 func (suite *JobTestSuite) TestExecuteContainerStartError() {
 	suite.c.On("Create").Return(nil)
 	suite.c.On("Attach",
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(nil)
 	suite.c.On("Start").Return(suite.err)
 	suite.c.On("Remove").Return(nil)
 
@@ -161,9 +161,9 @@ func (suite *JobTestSuite) TestExecuteContainerStartError() {
 func (suite *JobTestSuite) TestExecuteContainerInspectError() {
 	suite.c.On("Create").Return(nil)
 	suite.c.On("Attach",
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(nil)
 	suite.c.On("Start").Return(nil)
 	suite.c.On("Inspect").Return(suite.err)
 	suite.c.On("Remove").Return(nil)
@@ -186,9 +186,9 @@ func (suite *JobTestSuite) TestExecuteOutputLogging() {
 	c := &mockContainer{output: output}
 	c.On("Create").Return(nil)
 	c.On("Attach",
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer"),
-		mock.AnythingOfType("*bytes.Buffer")).Return(nil)
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).Return(nil)
 	c.On("Start").Return(nil)
 	c.On("Inspect").Return(nil)
 	c.On("Remove").Return(nil)

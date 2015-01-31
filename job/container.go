@@ -80,7 +80,7 @@ func (c *dockerContainer) Attach(stdIn io.Reader, stdOut, stdErr io.Writer) erro
 		Stdin:        true,
 		Stdout:       true,
 		Stderr:       true,
-		//RawTerminal:  true,
+		RawTerminal:  false,
 	}
 
 	return c.client.AttachToContainer(attachOpts)
