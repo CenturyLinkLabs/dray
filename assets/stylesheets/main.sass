@@ -58,6 +58,7 @@ header
     display: block
     background-image: url('../images/logo.png')
     background-size: 50px 50px
+    background-repeat: no-repeat
   nav
     display: none
     
@@ -150,11 +151,11 @@ a.button
         float: right
       input[type='submit']
         float: left
-
-  header 
+  header
+    position: fixed 
+    width: 100%
     a#nav-toggle
       display: none !important
-          
     a.logo
       width: 80px
       height: 80px
@@ -182,6 +183,21 @@ a.button
             text-align: center
             text-transform: uppercase
             letter-spacing: 1px
+    &.small
+      a.logo
+        width: 45px
+        height: 45px
+        margin: 0
+        background-size: 35px 35px
+        background-position: 5px 5px
+      nav
+        margin-top: 0
+        ul
+          li
+            margin-right: 5px
+            a
+              font-size: 14px
+              padding: 15px
         
   /* Columns */
   .column-50

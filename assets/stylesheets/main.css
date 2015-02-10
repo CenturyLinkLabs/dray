@@ -45,7 +45,8 @@ header {
     text-indent: -9999px;
     display: block;
     background-image: url("../images/logo.png");
-    background-size: 50px 50px; }
+    background-size: 50px 50px;
+    background-repeat: no-repeat; }
   header nav {
     display: none; }
 
@@ -127,34 +128,50 @@ a.button {
     section.newsletter input[type='submit'] {
       float: left; }
 
-  header a#nav-toggle {
-    display: none !important; }
-  header a.logo {
-    width: 80px;
-    height: 80px;
-    float: left;
-    text-indent: -9999px;
-    display: block;
-    background-size: 80px 80px; }
-  header nav {
-    display: block;
-    overflow: auto;
-    background-color: #29373f;
-    margin-top: 20px; }
-    header nav ul {
-      float: right;
-      overflow: auto; }
-      header nav ul li {
-        float: left;
-        margin-right: 20px; }
-        header nav ul li a {
-          width: 100%;
-          display: block;
-          padding: 20px;
-          color: white;
-          text-align: center;
-          text-transform: uppercase;
-          letter-spacing: 1px; }
+  header {
+    position: fixed;
+    width: 100%; }
+    header a#nav-toggle {
+      display: none !important; }
+    header a.logo {
+      width: 80px;
+      height: 80px;
+      float: left;
+      text-indent: -9999px;
+      display: block;
+      background-size: 80px 80px; }
+    header nav {
+      display: block;
+      overflow: auto;
+      background-color: #29373f;
+      margin-top: 20px; }
+      header nav ul {
+        float: right;
+        overflow: auto; }
+        header nav ul li {
+          float: left;
+          margin-right: 20px; }
+          header nav ul li a {
+            width: 100%;
+            display: block;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px; }
+    header.small a.logo {
+      width: 45px;
+      height: 45px;
+      margin: 0;
+      background-size: 35px 35px;
+      background-position: 5px 5px; }
+    header.small nav {
+      margin-top: 0; }
+      header.small nav ul li {
+        margin-right: 5px; }
+        header.small nav ul li a {
+          font-size: 14px;
+          padding: 15px; }
 
   /* Columns */
   .column-50 {

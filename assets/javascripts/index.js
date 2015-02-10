@@ -22,17 +22,18 @@ $(document).ready(function() {
     preventDefaultEvents: false
   });
 
-  //How It Works
 
-  var $header = $('#how-it-works h3');
-  $header.click(function (e) {
-
-    var sectionName = e.target.id;
-
-    $('#how-it-works li').removeClass('active');
-    $('#how-it-works').attr("class", sectionName).find('p').slideUp();
-    $(this).next().slideDown();
-    $(this).parent().addClass('active');
-  });
-
+  var $header = $('header');
+      height = $('header').height();
+      size = window.matchMedia('all and (min-width: 650px)');
+  
+  if(size.matches) {
+    $(window).scroll(function() {
+      if( $(this).scrollTop() > height ) {
+        $header.addClass('small');
+      } else {
+        $header.removeClass('small');
+      }
+    });
+  }
 });
