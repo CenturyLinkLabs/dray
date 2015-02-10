@@ -1,0 +1,203 @@
+$dark_blue: #29373f
+$header_color: #ff411e
+$button_color: #ff411e
+$light_text_color: #ffffff
+$dark_text_color: #222222
+$nav_item_count: 2
+$nav_item_width: (100/$nav_item_count) * 1%
+$thin_font: "Helvetica Neue", Helvetica, Arial, sans-serif
+$normal_font: Helvetica, Arial, sans-serif
+
+
+*
+  box-sizing: border-box
+  
+body, html
+  height: 100%
+  width: 100%
+  
+body 
+  font-family: $normal_font
+  width: 100%
+  min-width: 320px
+  color: $dark_text_color
+
+h1
+  font-size: 54px
+  margin-bottom: .2em
+
+h2
+  font-size: 44px
+  margin-bottom: .2em
+
+h3
+  font-size: 38px
+  margin-bottom: .2em
+  color: $header_color
+
+p
+  font-size: 16px
+  line-height: 1.5em
+  margin-bottom: 1.5em
+  &:last-child
+    margin-bottom: 0
+
+a
+  text-decoration: none
+  
+header
+  overflow: auto
+  background-color: $dark_blue
+
+  a.logo
+    width: 50px
+    height: 50px
+    margin: 15px 0 0 15px
+    float: left
+    text-indent: -9999px
+    display: block
+    background-image: url('../images/logo.png')
+    background-size: 50px 50px
+  nav
+    display: none
+    
+section
+  width: 100%
+  padding: 25px 20px
+  overflow: auto
+  ul
+    li
+      margin-bottom: .8em
+      font-weight: bold
+  
+  &.hero
+    color: $light_text_color
+    background-color: $dark_blue
+  
+  &.copy
+    p
+      margin-bottom: 1.5em
+      font-family: $thin_font
+      font-weight: 200
+      font-size: 18px
+      color: #555
+      
+  &.call-to-action
+    background-color: $dark_blue
+    a.link
+      margin-bottom: 0
+      color: $light_text_color
+      text-align: center
+      display: inline-block
+      width: 100%
+    a.button
+      margin-bottom: 15px
+
+  &.graphic
+    display: none
+
+
+  &.newsletter
+    background-color: #f1f1f1
+    input
+      width: 100%
+    input[type='email']
+      text-align: left
+      border: 1px solid #aaa
+      padding: 10px
+      margin-bottom: 15px
+    input[type='submit']
+      color: $light_text_color
+      background-color: #777
+      font-size: 14px
+      padding: 9px 20px
+      border: none
+      position: relative
+      top: 1px
+    
+footer
+  padding: 25px 20px
+  small
+    font-size: 12px
+  .logo
+    height: 70px
+    background: url('../images/ctl_logo_base.svg') 0 20px no-repeat #FFF
+    background-size: 140px 30px
+
+a.button
+  display: block
+  color: $light_text_color
+  background-color: $button_color
+  padding: 15px 10px 14px
+  text-align: center
+  margin: 10px 0
+
+@media screen and (min-width: 650px)
+  section
+    padding: 40px 25px
+    
+    &.hero
+      a.button
+        width: 40%
+    &.call-to-action
+      a.link
+        margin: 23px 0 0 20px
+        text-align: left
+    &.newsletter
+      input
+        width: 49%
+      input[type='email']
+        float: right
+      input[type='submit']
+        float: left
+
+  header 
+    a#nav-toggle
+      display: none !important
+          
+    a.logo
+      width: 80px
+      height: 80px
+      float: left
+      text-indent: -9999px
+      display: block
+      background-size: 80px 80px
+    
+    nav
+      display: block
+      overflow: auto
+      background-color: $dark_blue
+      margin-top: 20px
+      ul
+        float: right
+        overflow: auto
+        li
+          float: left
+          margin-right: 20px
+          a
+            width: 100%
+            display: block
+            padding: 20px 
+            color: $light_text_color
+            text-align: center
+            text-transform: uppercase
+            letter-spacing: 1px
+        
+  /* Columns */
+  .column-50
+    width: 49%
+    
+  .column-33
+    width: 32%
+    
+  .left
+    float: left
+  
+  .right
+    float: right
+  
+  .inner
+    overflow: auto
+    width: 100%
+    max-width: 1000px
+    margin: 0 auto
