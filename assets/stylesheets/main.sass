@@ -1,8 +1,10 @@
 $dark_blue: #29373f
 $header_color: #ff411e
 $button_color: #ff411e
+$light_background_color: #ffffff
 $light_text_color: #ffffff
-$dark_text_color: #222222
+$medium_text_color: #a2a2a2
+$dark_text_color: #373737
 $nav_item_count: 2
 $nav_item_width: (100/$nav_item_count) * 1%
 $thin_font: "Helvetica Neue", Helvetica, Arial, sans-serif
@@ -23,11 +25,13 @@ body
   color: $dark_text_color
 
 h1
-  font-size: 54px
+  font-size: 64px
+  font-weight: 800
   margin-bottom: .2em
 
 h2
-  font-size: 44px
+  font-size: 54px
+  font-weight: 800
   margin-bottom: .2em
 
 h3
@@ -47,20 +51,24 @@ a
   
 header
   overflow: auto
-  background-color: $dark_blue
+  background-image: url('../images/bg_dray_grid.png')
+  background-attachment: fixed
 
   a.logo
-    width: 50px
-    height: 50px
-    margin: 15px 0 0 15px
+    width: 110px
+    height: 110px
+    margin: 15px 0 15px 15px
     float: left
     text-indent: -9999px
     display: block
-    background-image: url('../images/logo.png')
-    background-size: 50px 50px
+    background-image: url('../images/logo_dray.svg')
+    background-size: 110px 110px
     background-repeat: no-repeat
   nav
     display: none
+  &.small
+    header
+      background-color: $dark_text_color
     
 section
   width: 100%
@@ -72,16 +80,31 @@ section
       font-weight: bold
   
   &.hero
+    padding: 140px 20px 60px 20px
     color: $light_text_color
     background-color: $dark_blue
+    background-image: url('../images/bg_dray_grid.png')
+
+
+    p
+      font-size: 44px
+      font-family: $thin_font
+      font-weight: 200
+      line-height: 30px
   
   &.copy
+    background-color: $light_background_color
     p
       margin-bottom: 1.5em
       font-family: $thin_font
       font-weight: 200
-      font-size: 18px
-      color: #555
+      font-size: 24px
+      line-height: 40px
+      color: $medium_text_color
+    ul
+      li
+
+        list-style-type: disc
       
   &.call-to-action
     background-color: $dark_blue
@@ -100,9 +123,11 @@ section
 
   &.newsletter
     background-color: #f1f1f1
+    p
+      font-size: 22px
     input
       width: 100%
-    input[type='email']
+    input[type='email'], input[type='text']
       text-align: left
       border: 1px solid #aaa
       padding: 10px
@@ -117,21 +142,24 @@ section
       top: 1px
     
 footer
+  background-color: $light_background_color
   padding: 25px 20px
   small
     font-size: 12px
+    float: right
   .logo
-    height: 70px
+    height: 80px
     background: url('../images/ctl_logo_base.svg') 0 20px no-repeat #FFF
-    background-size: 140px 30px
-
+    background-size: 210px 45px
 a.button
   display: block
   color: $light_text_color
   background-color: $button_color
-  padding: 15px 10px 14px
+  padding: 22px 0 20px
   text-align: center
   margin: 10px 0
+  &:hover
+    background-color: darken( $button_color, 20% )
 
 @media screen and (min-width: 650px)
   section
@@ -142,32 +170,39 @@ a.button
         width: 40%
     &.call-to-action
       a.link
-        margin: 23px 0 0 20px
+        margin: 30px 0 0 20px
         text-align: left
     &.newsletter
       input
-        width: 49%
-      input[type='email']
-        float: right
-      input[type='submit']
+        width: 48%
+        font-size: 24px
+      input[type='email'], input[type='text']
         float: left
+        clear: left
+        border: 0px
+      input[type='submit']
+        cursor: pointer
+        width: 35%
+        font-size: 24px
+        top: 64px
+        margin: 0 0 0 15px
+        background-color: $dark_blue
   header
     position: fixed 
     width: 100%
     a#nav-toggle
       display: none !important
     a.logo
-      width: 80px
-      height: 80px
+      width: 110px
+      height: 110px
       float: left
       text-indent: -9999px
       display: block
-      background-size: 80px 80px
+      background-size: 110px 110px
     
     nav
       display: block
       overflow: auto
-      background-color: $dark_blue
       margin-top: 20px
       ul
         float: right
@@ -185,10 +220,11 @@ a.button
             letter-spacing: 1px
     &.small
       a.logo
-        width: 45px
-        height: 45px
+        width: 152px
+        height: 56px
         margin: 0
-        background-size: 35px 35px
+        background-image: url('../images/logo_dray_long.svg')
+        background-size: 147px 56px
         background-position: 5px 5px
       nav
         margin-top: 0
@@ -197,11 +233,18 @@ a.button
             margin-right: 5px
             a
               font-size: 14px
-              padding: 15px
+              padding: 25px
         
   /* Columns */
+  .column-60
+    width: 59%
+    padding: 0 20px 0 0
+
   .column-50
     width: 49%
+
+  .column-40
+    width: 39%
     
   .column-33
     width: 32%
