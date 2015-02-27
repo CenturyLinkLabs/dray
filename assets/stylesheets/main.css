@@ -138,9 +138,15 @@ a.button {
 
 @media screen and (min-width: 650px) {
   section {
-    padding: 40px 25px; }
-    section.hero a.button {
-      width: 40%; }
+    position: relative;
+    padding: 40px 25px;
+    z-index: 9999; }
+    section.hero {
+      z-index: 42;
+      position: fixed;
+      top: 0; }
+      section.hero a.button {
+        width: 40%; }
     section.call-to-action a.link {
       margin: 30px 0 0 20px;
       text-align: left; }
@@ -161,7 +167,13 @@ a.button {
 
   header {
     position: fixed;
-    width: 100%; }
+    top: 0;
+    z-index: 99999;
+    width: 100%;
+    height: 140px;
+    transition-property: all;
+    transition-duration: 0.5s;
+    transition-timing-function: cubic-bezier(0, 1, 0.5, 1); }
     header a#nav-toggle {
       display: none !important; }
     header a.logo {
@@ -189,20 +201,28 @@ a.button {
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 1px; }
-    header.small a.logo {
-      width: 152px;
-      height: 56px;
-      margin: 0;
-      background-image: url("../images/logo_dray_long.svg");
-      background-size: 147px 56px;
-      background-position: 5px 5px; }
-    header.small nav {
-      margin-top: 0; }
-      header.small nav ul li {
-        margin-right: 5px; }
-        header.small nav ul li a {
-          font-size: 14px;
-          padding: 25px; }
+    header.small {
+      height: 70px; }
+      header.small a.logo {
+        width: 152px;
+        height: 56px;
+        margin: 0;
+        background-image: url("../images/logo_dray_long.svg");
+        background-size: 147px 56px;
+        background-position: 5px 5px; }
+      header.small nav {
+        margin-top: 0; }
+        header.small nav ul li {
+          margin-right: 5px; }
+          header.small nav ul li a {
+            font-size: 14px;
+            padding: 25px; }
+
+  footer {
+    position: relative;
+    z-index: 99999; }
+    footer small {
+      margin-top: 38px; }
 
   /* Columns */
   .column-60 {
@@ -225,7 +245,7 @@ a.button {
     float: right; }
 
   .inner {
-    overflow: auto;
+    overflow: hidden;
     width: 100%;
     max-width: 1000px;
     margin: 0 auto; } }
