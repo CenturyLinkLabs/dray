@@ -1,0 +1,251 @@
+* {
+  box-sizing: border-box; }
+
+body, html {
+  height: 100%;
+  width: 100%; }
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+  width: 100%;
+  min-width: 320px;
+  color: #373737; }
+
+h1 {
+  font-size: 64px;
+  font-weight: 800;
+  margin-bottom: 0.2em; }
+
+h2 {
+  font-size: 54px;
+  font-weight: 800;
+  margin-bottom: 0.2em; }
+
+h3 {
+  font-size: 38px;
+  margin-bottom: 0.2em;
+  color: #ff411e; }
+
+p {
+  font-size: 16px;
+  line-height: 1.5em;
+  margin-bottom: 1.5em; }
+  p:last-child {
+    margin-bottom: 0; }
+
+a {
+  text-decoration: none; }
+
+header {
+  overflow: auto;
+  background-image: url("../images/bg_dray_grid.png");
+  background-attachment: fixed; }
+  header a.logo {
+    width: 110px;
+    height: 110px;
+    margin: 15px 0 15px 15px;
+    float: left;
+    text-indent: -9999px;
+    display: block;
+    background-image: url("../images/logo_dray.svg");
+    background-size: 110px 110px;
+    background-repeat: no-repeat; }
+  header nav {
+    display: none; }
+  header.small header {
+    background-color: #373737; }
+
+section {
+  width: 100%;
+  padding: 25px 20px;
+  overflow: auto; }
+  section ul li {
+    margin-bottom: 0.8em;
+    font-weight: bold; }
+  section.hero {
+    padding: 140px 20px 60px 20px;
+    color: white;
+    background-color: #29373f;
+    background-image: url("../images/bg_dray_grid.png"); }
+    section.hero p {
+      font-size: 44px;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 200;
+      line-height: 30px; }
+  section.copy {
+    background-color: white; }
+    section.copy p {
+      margin-bottom: 1.5em;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 200;
+      font-size: 24px;
+      line-height: 40px;
+      color: #a2a2a2; }
+    section.copy ul li {
+      list-style-type: disc; }
+  section.call-to-action {
+    background-color: #29373f; }
+    section.call-to-action a.link {
+      margin-bottom: 0;
+      color: white;
+      text-align: center;
+      display: inline-block;
+      width: 100%; }
+    section.call-to-action a.button {
+      margin-bottom: 15px; }
+  section.graphic {
+    display: none; }
+  section.newsletter {
+    background-color: #f1f1f1; }
+    section.newsletter p {
+      font-size: 22px; }
+    section.newsletter input {
+      width: 100%; }
+    section.newsletter input[type='email'], section.newsletter input[type='text'] {
+      text-align: left;
+      border: 1px solid #aaaaaa;
+      padding: 10px;
+      margin-bottom: 15px; }
+    section.newsletter input[type='submit'] {
+      color: white;
+      background-color: #777777;
+      font-size: 14px;
+      padding: 9px 20px;
+      border: none;
+      position: relative;
+      top: 1px; }
+
+footer {
+  background-color: white;
+  padding: 25px 20px; }
+  footer small {
+    font-size: 12px;
+    float: right; }
+  footer .logo {
+    height: 80px;
+    background: url("../images/ctl_logo_base.svg") 0 20px no-repeat white;
+    background-size: 210px 45px; }
+
+a.button {
+  display: block;
+  color: white;
+  background-color: #ff411e;
+  padding: 22px 0 20px;
+  text-align: center;
+  margin: 10px 0; }
+  a.button:hover {
+    background-color: #b71c00; }
+
+@media screen and (min-width: 650px) {
+  section {
+    position: relative;
+    padding: 40px 25px;
+    z-index: 9999; }
+    section.hero {
+      z-index: 42;
+      position: fixed;
+      top: 0; }
+      section.hero a.button {
+        width: 40%; }
+    section.call-to-action a.link {
+      margin: 30px 0 0 20px;
+      text-align: left; }
+    section.newsletter input {
+      width: 48%;
+      font-size: 24px; }
+    section.newsletter input[type='email'], section.newsletter input[type='text'] {
+      float: left;
+      clear: left;
+      border: 0px; }
+    section.newsletter input[type='submit'] {
+      cursor: pointer;
+      width: 35%;
+      font-size: 24px;
+      top: 64px;
+      margin: 0 0 0 15px;
+      background-color: #29373f; }
+
+  header {
+    position: fixed;
+    top: 0;
+    z-index: 99999;
+    width: 100%;
+    height: 140px;
+    transition-property: all;
+    transition-duration: 0.5s;
+    transition-timing-function: cubic-bezier(0, 1, 0.5, 1); }
+    header a#nav-toggle {
+      display: none !important; }
+    header a.logo {
+      width: 110px;
+      height: 110px;
+      float: left;
+      text-indent: -9999px;
+      display: block;
+      background-size: 110px 110px; }
+    header nav {
+      display: block;
+      overflow: auto;
+      margin-top: 20px; }
+      header nav ul {
+        float: right;
+        overflow: auto; }
+        header nav ul li {
+          float: left;
+          margin-right: 20px; }
+          header nav ul li a {
+            width: 100%;
+            display: block;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px; }
+    header.small {
+      height: 70px; }
+      header.small a.logo {
+        width: 152px;
+        height: 56px;
+        margin: 0;
+        background-image: url("../images/logo_dray_long.svg");
+        background-size: 147px 56px;
+        background-position: 5px 5px; }
+      header.small nav {
+        margin-top: 0; }
+        header.small nav ul li {
+          margin-right: 5px; }
+          header.small nav ul li a {
+            font-size: 14px;
+            padding: 25px; }
+
+  footer {
+    position: relative;
+    z-index: 99999; }
+    footer small {
+      margin-top: 38px; }
+
+  /* Columns */
+  .column-60 {
+    width: 59%;
+    padding: 0 20px 0 0; }
+
+  .column-50 {
+    width: 49%; }
+
+  .column-40 {
+    width: 39%; }
+
+  .column-33 {
+    width: 32%; }
+
+  .left {
+    float: left; }
+
+  .right {
+    float: right; }
+
+  .inner {
+    overflow: hidden;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto; } }
