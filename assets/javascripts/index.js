@@ -27,19 +27,28 @@ $(document).ready(function() {
     var $hero = $('.hero');
     var height = $hero.css("height");
 
-    $('section:nth-of-type(2)').css('margin-top', height);
 
-    var size = window.matchMedia('all and (min-width: 650px)');
+    var desktopSize = window.matchMedia('all and (min-width: 650px)');
+    var mobileSize = window.matchMedia('all and (max-width: 649px)');
 
-    if(size.matches) {
-      $(window).scroll(function() {
-        if( $(this).scrollTop() > height.replace('px', '') ) {
+    if (desktopSize.matches) {
+      $('section:nth-of-type(2)').css('margin-top', height);
+
+      $(window).scroll(function () {
+        if ($(this).scrollTop() > (height.replace('px', '') - 80)) {
           $header.addClass('small');
         } else {
           $header.removeClass('small');
         }
       });
     }
+    $(window).resize(function() {
+      if (mobileSize.matches) {
+        $('section:nth-of-type(2)').css('margin-top', '0');
+      } else {
+        $('section:nth-of-type(2)').css('margin-top', height);
+      }
+    });
   }
 
   sideNav();
