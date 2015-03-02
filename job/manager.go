@@ -1,0 +1,174 @@
+package job
+
+import (
+	"bufio"
+	"bytes"
+	"io"
+	"io/ioutil"
+	"os"
+	"strconv"
+	"sync"
+
+	log "github.com/Sirupsen/logrus"
+)
+
+const (
+	fieldStatus         = "status"
+	fieldCompletedSteps = "completedSteps"
+
+	statusRunning  = "running"
+	statusError    = "error"
+	statusComplete = "complete"
+)
+
+type jobManager struct {
+	repository JobRepository
+	executor   JobStepExecutor
+}
+
+func NewJobManager(r JobRepository, e JobStepExecutor) JobManager {
+	return &jobManager{
+		repository: r,
+		executor:   e,
+	}
+}
+
+func (jm *jobManager) ListAll() ([]Job, error) {
+	return jm.repository.All()
+}
+
+func (jm *jobManager) GetByID(jobID string) (*Job, error) {
+	return jm.repository.Get(jobID)
+}
+
+func (jm *jobManager) Create(job *Job) error {
+	return jm.repository.Create(job)
+}
+
+func (jm *jobManager) Execute(job *Job) error {
+	var capture io.Reader
+	var err error
+	status := statusRunning
+
+	jm.repository.Update(job.ID, fieldStatus, status)
+
+	for i := range job.Steps {
+		capture, err = jm.executeStep(job, capture)
+
+		if err != nil {
+			break
+		}
+
+		job.StepsCompleted++
+		jm.repository.Update(job.ID, fieldCompletedSteps, strconv.Itoa(i+1))
+	}
+
+	if err != nil {
+		status = statusError
+	} else {
+		status = statusComplete
+	}
+
+	jm.repository.Update(job.ID, fieldStatus, status)
+	return err
+}
+
+func (jm *jobManager) GetLog(job *Job, index int) (*JobLog, error) {
+	return jm.repository.GetJobLog(job.ID, index)
+}
+
+func (jm *jobManager) Delete(job *Job) error {
+	return jm.repository.Delete(job.ID)
+}
+
+func (jm *jobManager) executeStep(job *Job, stdIn io.Reader) (io.Reader, error) {
+	var wg sync.WaitGroup
+	var outBuffer, errBuffer io.Writer
+	var stepOutput io.Reader
+
+	step := job.CurrentStep()
+	stdOutReader, stdOutWriter := io.Pipe()
+	stdErrReader, stdErrWriter := io.Pipe()
+
+	if step.UsesFilePipe() {
+		f, err := os.Create(step.FilePipePath())
+		if err != nil {
+			return nil, err
+		}
+
+		f.Close()
+		defer os.Remove(step.FilePipePath())
+	} else {
+		buffer := &bytes.Buffer{}
+		stepOutput = buffer
+
+		if step.UsesStdOutPipe() {
+			outBuffer = buffer
+		} else if step.UsesStdErrPipe() {
+			errBuffer = buffer
+		}
+	}
+
+	err := jm.executor.Start(job, stdIn, stdOutWriter, stdErrWriter)
+	if err != nil {
+		return nil, err
+	}
+	defer jm.executor.CleanUp(job)
+
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		jm.capture(job, stdOutReader, outBuffer)
+	}()
+
+	go func() {
+		defer wg.Done()
+		jm.capture(job, stdErrReader, errBuffer)
+	}()
+
+	wg.Wait()
+
+	if err := jm.executor.Inspect(job); err != nil {
+		return nil, err
+	}
+
+	if step.UsesFilePipe() {
+		// Grab data written to pipe file
+		b, err := ioutil.ReadFile(step.FilePipePath())
+		if err != nil {
+			return nil, err
+		}
+
+		stepOutput = bytes.NewBuffer(b)
+	}
+
+	return stepOutput, nil
+}
+
+func (jm *jobManager) capture(job *Job, r io.Reader, w io.Writer) {
+	step := job.CurrentStep()
+	scanner := bufio.NewScanner(r)
+	capture := !step.UsesDelimitedOutput()
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		log.Debugf(line)
+		jm.repository.AppendLogLine(job.ID, line)
+
+		if w != nil {
+			if step.UsesDelimitedOutput() && line == step.EndDelimiter {
+				capture = false
+			}
+
+			if capture {
+				w.Write(append([]byte(line), '\n'))
+			}
+
+			if step.UsesDelimitedOutput() && line == step.BeginDelimiter {
+				capture = true
+			}
+		}
+	}
+}

@@ -27,9 +27,9 @@ func main() {
 	port := flag.Int("p", 3000, "port on which the server will run")
 	flag.Parse()
 
-	a := job.NewJobAccessor(redisHost())
-	cf := job.NewContainerFactory(dockerEndpoint())
-	jm := job.NewJobManager(a, cf)
+	r := job.NewJobRepository(redisHost())
+	e := job.NewExecutor(dockerEndpoint())
+	jm := job.NewJobManager(r, e)
 
 	s := api.NewServer(jm)
 	s.Start(*port)
