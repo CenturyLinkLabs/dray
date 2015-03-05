@@ -13,12 +13,12 @@ $normal_font: Helvetica, Arial, sans-serif
 
 *
   box-sizing: border-box
-  
+
 body, html
   height: 100%
   width: 100%
-  
-body 
+
+body
   font-family: $normal_font
   width: 100%
   min-width: 320px
@@ -48,7 +48,7 @@ p
 
 a
   text-decoration: none
-  
+
 header
   overflow: auto
   background-image: url('../images/bg_dray_grid.png')
@@ -69,7 +69,7 @@ header
   &.small
     header
       background-color: $dark_text_color
-    
+
 section
   width: 100%
   padding: 25px 20px
@@ -78,7 +78,7 @@ section
     li
       margin-bottom: .8em
       font-weight: bold
-  
+
   &.hero
     padding: 140px 20px 60px 20px
     color: $light_text_color
@@ -91,7 +91,7 @@ section
       font-family: $thin_font
       font-weight: 200
       line-height: 30px
-  
+
   &.copy
     background-color: $light_background_color
     p
@@ -105,7 +105,7 @@ section
       li
 
         list-style-type: disc
-      
+
   &.call-to-action
     background-color: $dark_blue
     a.link
@@ -118,6 +118,7 @@ section
       margin-bottom: 15px
 
   &.graphic
+    display: none
     background-color: $light_background_color
     border-top: 1px solid #ccc
 
@@ -140,7 +141,7 @@ section
       border: none
       position: relative
       top: 1px
-    
+
 footer
   background-color: $light_background_color
   padding: 25px 20px
@@ -160,6 +161,10 @@ a.button
   margin: 10px 0
   &:hover
     background-color: darken( $button_color, 20% )
+
+@media screen and (min-width: 1005px)
+  section.graphic
+    display: block
 
 @media screen and (min-width: 650px)
   section
@@ -192,7 +197,7 @@ a.button
         margin: 0 0 0 15px
         background-color: $dark_blue
   header
-    position: fixed 
+    position: fixed
     top: 0
     z-index: 99999
     width: 100%
@@ -209,7 +214,7 @@ a.button
       text-indent: -9999px
       display: block
       background-size: 110px 110px
-    
+
     nav
       display: block
       overflow: auto
@@ -223,7 +228,7 @@ a.button
           a
             width: 100%
             display: block
-            padding: 20px 
+            padding: 20px
             color: $light_text_color
             text-align: center
             text-transform: uppercase
@@ -261,16 +266,16 @@ a.button
 
   .column-40
     width: 39%
-    
+
   .column-33
     width: 32%
-    
+
   .left
     float: left
-  
+
   .right
     float: right
-  
+
   .inner
     overflow: hidden
     width: 100%

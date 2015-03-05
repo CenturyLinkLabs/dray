@@ -94,6 +94,7 @@ section {
     section.call-to-action a.button {
       margin-bottom: 15px; }
   section.graphic {
+    display: none;
     background-color: white;
     border-top: 1px solid #cccccc; }
   section.newsletter {
@@ -137,6 +138,9 @@ a.button {
   a.button:hover {
     background-color: #b71c00; }
 
+@media screen and (min-width: 1005px) {
+  section.graphic {
+    display: block; } }
 @media screen and (min-width: 650px) {
   section {
     position: relative;
