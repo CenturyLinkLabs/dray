@@ -94,7 +94,8 @@ section {
     section.call-to-action a.button {
       margin-bottom: 15px; }
   section.graphic {
-    display: none; }
+    background-color: white;
+    border-top: 1px solid #cccccc; }
   section.newsletter {
     background-color: #f1f1f1; }
     section.newsletter p {
