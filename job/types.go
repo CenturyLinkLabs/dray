@@ -50,7 +50,7 @@ func (j Job) CurrentStepEnvironment() Environment {
 }
 
 type JobStep struct {
-	ID             string
+	id             string
 	Name           string      `json:"name,omitempty"`
 	Source         string      `json:"source,omitempty"`
 	Environment    Environment `json:"environment,omitempty"`

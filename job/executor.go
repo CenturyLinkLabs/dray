@@ -42,12 +42,12 @@ func (e *jobStepExecutor) Start(j *Job, stdIn io.Reader, stdOut, stdErr io.Write
 		return err
 	}
 
-	j.CurrentStep().ID = id
+	j.CurrentStep().id = id
 	return nil
 }
 
 func (e *jobStepExecutor) Inspect(j *Job) error {
-	container, err := e.client.InspectContainer(j.CurrentStep().ID)
+	container, err := e.client.InspectContainer(j.CurrentStep().id)
 
 	if err != nil {
 		return err
@@ -62,13 +62,13 @@ func (e *jobStepExecutor) Inspect(j *Job) error {
 
 func (e *jobStepExecutor) CleanUp(j *Job) error {
 	removeOpts := docker.RemoveContainerOptions{
-		ID: j.CurrentStep().ID,
+		ID: j.CurrentStep().id,
 	}
 
 	err := e.client.RemoveContainer(removeOpts)
 
 	if err == nil {
-		log.Infof("Container %s removed", j.CurrentStep().ID)
+		log.Infof("Container %s removed", j.CurrentStep().id)
 	}
 
 	return err
