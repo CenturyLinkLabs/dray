@@ -1,0 +1,34 @@
+machine:
+  services:
+    - docker
+  environment:
+    GOPATH: /home/ubuntu/.go_workspace
+    PKG_NAME: github.com/CenturyLinkLabs/dray
+    IMAGE_NAME: centurylink/dray
+
+general:
+  artifacts:
+    - "dray" # the built binary
+
+checkout:
+  post:
+    - mkdir -p $(dirname $GOPATH/src/$PKG_NAME) 
+    - ln -sf ~/$CIRCLE_PROJECT_REPONAME $GOPATH/src/$PKG_NAME
+
+dependencies:
+  override:
+    - go get -v github.com/tools/godep
+    - go get -d -v github.com/stretchr/testify
+
+test:
+  override:
+    - godep go test -v ./...
+
+deployment:
+  hub:
+    branch: master
+    commands:
+      - CGO_ENABLED=0 godep go build -a -installsuffix cgo -ldflags '-s' $PKG_NAME
+      - docker build -t $IMAGE_NAME:dev .
+      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+      - docker push $IMAGE_NAME:dev
