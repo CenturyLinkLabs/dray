@@ -129,8 +129,9 @@ footer {
     font-size: 12px;
     float: right; }
   footer .logo {
-    height: 80px;
-    background: url("../images/ctl_logo_base.svg") 0 20px no-repeat white;
+    height: 45px;
+    margin-top: 38px;
+    background: url("../images/ctl_logo_base.svg") no-repeat white;
     background-size: 210px 45px; }
 
 a.button {
@@ -262,7 +263,9 @@ a.button {
     position: relative;
     z-index: 99999; }
     footer small {
-      margin-top: 38px; }
+      margin-top: 18px; }
+    footer .logo {
+      margin-top: 0; }
 
   /* Columns */
   .column-60 {
