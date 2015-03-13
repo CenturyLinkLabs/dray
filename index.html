@@ -52,7 +52,13 @@
     
     <section class="graphic">
       <div class="inner">
-         <img src="assets/images/dray_illustration.png">
+        <p class="input"><span>Input.</span>Dray receives a job description -- the list of Docker images to run along with any environment variables to be injected into those images.</p>
+        <p class="output"><span>Output.</span>When all the steps of the job have completed, Dray saves the overall status of the job and makes it available via the rest API.</p>
+        <div class="steps">
+          <p>Dray starts the first container in the sequence and records in its output in order to pass it along to the next one in the chain. Once a container stops execution, Dray cleans it up.</p>
+          <p>Dray starts the next container and uses the output of the previous step as the input to the current one.</p>
+          <p>The remaining containers remained queued as Dray monitors the progress of the job.</p>
+        </div>
       </div>
     </section>
     

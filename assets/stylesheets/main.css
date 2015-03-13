@@ -140,9 +140,36 @@ a.button {
   a.button:hover {
     background-color: #b71c00; }
 
-@media screen and (min-width: 1005px) {
+@media screen and (min-width: 960px) {
   section.graphic {
-    display: block; } }
+    display: block; }
+    section.graphic .inner {
+      background: url("../images/dray_illustration_blank.png") no-repeat;
+      background-size: 100%;
+      min-height: 220px;
+      position: relative; }
+    section.graphic p {
+      font-size: 12px; }
+      section.graphic p.input, section.graphic p.output {
+        color: white;
+        width: 16%;
+        padding: 15px;
+        margin: 3% 0 0;
+        position: absolute; }
+        section.graphic p.input span, section.graphic p.output span {
+          display: block;
+          font-weight: bold; }
+      section.graphic p.input {
+        left: 0; }
+      section.graphic p.output {
+        right: 0; }
+    section.graphic .steps {
+      margin: 22.5% 16% 0; }
+      section.graphic .steps p {
+        color: #373737;
+        width: 33%;
+        padding: 15px;
+        float: left; } }
 @media screen and (min-width: 650px) {
   section {
     position: relative;

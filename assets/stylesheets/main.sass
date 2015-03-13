@@ -164,9 +164,37 @@ a.button
   &:hover
     background-color: darken( $button_color, 20% )
 
-@media screen and (min-width: 1005px)
+@media screen and (min-width: 960px)
   section.graphic
     display: block
+    .inner
+      background: url('../images/dray_illustration_blank.png') no-repeat
+      background-size: 100%
+      min-height: 220px
+      position: relative
+    p
+      font-size: 12px
+      &.input,
+      &.output
+        color: #ffffff
+        width: 16%
+        padding: 15px
+        margin: 3% 0 0
+        position: absolute
+        span
+          display: block
+          font-weight: bold
+      &.input
+        left: 0
+      &.output
+        right: 0
+    .steps
+      margin: 22.5% 16% 0
+      p
+        color: $dark_text_color
+        width: 33%
+        padding: 15px
+        float: left
 
 @media screen and (min-width: 650px)
   section
