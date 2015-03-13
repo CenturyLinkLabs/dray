@@ -65,7 +65,7 @@ section {
     margin-bottom: 0.8em;
     font-weight: bold; }
   section.hero {
-    padding: 140px 20px 60px 20px;
+    padding: 20px 20px 60px 20px;
     color: white;
     background-color: #29373f;
     background-image: url("../images/bg_dray_grid.png"); }
@@ -73,7 +73,7 @@ section {
       font-size: 44px;
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-weight: 200;
-      line-height: 30px; }
+      line-height: 45px; }
   section.copy {
     background-color: white; }
     section.copy p {
@@ -82,9 +82,11 @@ section {
       font-weight: 200;
       font-size: 24px;
       line-height: 40px;
-      color: #a2a2a2; }
-    section.copy ul li {
-      list-style-type: disc; }
+      color: #828282; }
+    section.copy ul {
+      padding-left: 20px; }
+      section.copy ul li {
+        list-style-type: disc; }
   section.call-to-action {
     background-color: #29373f; }
     section.call-to-action a.link {
@@ -117,7 +119,8 @@ section {
       padding: 9px 20px;
       border: none;
       position: relative;
-      top: 1px; }
+      top: 1px;
+      -webkit-appearance: none; }
 
 footer {
   background-color: white;
@@ -178,9 +181,12 @@ a.button {
     section.hero {
       z-index: 42;
       position: fixed;
-      top: 0; }
+      top: 0;
+      padding-top: 140px; }
       section.hero a.button {
         width: 40%; }
+    section.copy ul {
+      padding-left: 0; }
     section.call-to-action a.link {
       margin: 30px 0 0 20px;
       text-align: left; }

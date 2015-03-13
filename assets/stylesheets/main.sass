@@ -3,7 +3,7 @@ $header_color: #ff411e
 $button_color: #ff411e
 $light_background_color: #ffffff
 $light_text_color: #ffffff
-$medium_text_color: #a2a2a2
+$medium_text_color: #828282
 $dark_text_color: #373737
 $nav_item_count: 2
 $nav_item_width: (100/$nav_item_count) * 1%
@@ -82,17 +82,16 @@ section
       font-weight: bold
 
   &.hero
-    padding: 140px 20px 60px 20px
+    padding: 20px 20px 60px 20px
     color: $light_text_color
     background-color: $dark_blue
     background-image: url('../images/bg_dray_grid.png')
-
 
     p
       font-size: 44px
       font-family: $thin_font
       font-weight: 200
-      line-height: 30px
+      line-height: 45px
 
   &.copy
     background-color: $light_background_color
@@ -104,8 +103,8 @@ section
       line-height: 40px
       color: $medium_text_color
     ul
+      padding-left: 20px
       li
-
         list-style-type: disc
 
   &.call-to-action
@@ -143,6 +142,7 @@ section
       border: none
       position: relative
       top: 1px
+      -webkit-appearance: none
 
 footer
   background-color: $light_background_color
@@ -205,8 +205,12 @@ a.button
       z-index: 42
       position: fixed
       top: 0
+      padding-top: 140px
       a.button
         width: 40%
+    &.copy
+      ul
+        padding-left: 0
     &.call-to-action
       a.link
         margin: 30px 0 0 20px
