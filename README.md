@@ -178,6 +178,7 @@ The response body will echo back the submitted job description including the ID 
 * `environment` (`array` of `envVar`) - **Optional.** List of environment variables to be injected into this step's container.
 * `source` (`string`) - **Required.** Name of the Docker image to be executed for this step. If the tag is omitted from the image name, will default to "latest".
 * `output` (`string`) - **Optional.** Output channel to be captured and passed to the next step in the job. Valid values are "stdout", "stderr" or any absolute file path. Defaults to "stdout" if not specified. See the "Output Channels" section below for more details.
+* `refresh` (`boolean`) - **Optional.** Flag indicating whether or not the image identified by the *source* attribute should be refreshed before it is executed. A *true* value will force Dray to do a `docker pull` before the job step is started. A *false* value (the default) indicates that a `docker pull` should be done only if the image doesn't already exist in the local image cache.
 
 **Example Request:**
 

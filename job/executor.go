@@ -76,7 +76,7 @@ func (e *jobStepExecutor) CleanUp(j *Job) error {
 
 func (e *jobStepExecutor) createContainer(j *Job) (string, error) {
 	step := j.CurrentStep()
-	if err := e.ensureImage(step.Source); err != nil {
+	if err := e.ensureImage(step.Source, step.Refresh); err != nil {
 		return "", err
 	}
 
@@ -99,9 +99,10 @@ func (e *jobStepExecutor) createContainer(j *Job) (string, error) {
 
 	if err == nil {
 		log.Infof("Container %s created from %s", container.ID, step.Source)
+		return container.ID, err
 	}
 
-	return container.ID, err
+	return "", err
 }
 
 func (e *jobStepExecutor) attachContainer(id string, stdIn io.Reader, stdOut, stdErr io.Writer) error {
@@ -130,23 +131,44 @@ func (e *jobStepExecutor) startContainer(id string) error {
 	return err
 }
 
-func (e *jobStepExecutor) ensureImage(source string) error {
-	_, err := e.client.InspectImage(source)
-	if err == docker.ErrNoSuchImage {
+func (e *jobStepExecutor) ensureImage(name string, force bool) error {
+	image, err := e.client.InspectImage(name)
+	if err == docker.ErrNoSuchImage || force {
 
-		log.Infof("Pulling image %s", source)
-		if err = e.pullImage(source); err != nil {
+		log.Infof("Pulling image %s", name)
+		if err = e.pullImage(name); err != nil {
 			return err
+		}
+	}
+
+	if force && image != nil {
+		newImage, err := e.client.InspectImage(name)
+		if err != nil {
+			return err
+		}
+
+		// Only remove image if new ID is different than old ID
+		if newImage.ID != image.ID {
+			e.removeImage(image.ID)
 		}
 	}
 
 	return err
 }
 
-func (e *jobStepExecutor) pullImage(source string) error {
+func (e *jobStepExecutor) pullImage(name string) error {
 	opts := docker.PullImageOptions{
-		Repository: source,
+		Repository: name,
 	}
 
 	return e.client.PullImage(opts, docker.AuthConfiguration{})
+}
+
+func (e *jobStepExecutor) removeImage(name string) error {
+	err := e.client.RemoveImage(name)
+	if err == nil {
+		log.Infof("Removing image %s", name)
+	}
+
+	return err
 }

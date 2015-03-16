@@ -57,6 +57,7 @@ type JobStep struct {
 	Output         string      `json:"output,omitempty"`
 	BeginDelimiter string      `json:"beginDelimiter,omitempty"`
 	EndDelimiter   string      `json:"endDelimiter,omitempty"`
+	Refresh        bool        `json:"refresh,omitempty"`
 }
 
 type Environment []EnvVar
