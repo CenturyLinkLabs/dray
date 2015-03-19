@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+0.10.0 - 2015-03-19
+-------------------
+### Added
+- Support for refresh flag on job steps to automatically pull latest images
+
 0.9.0 - 2015-03-09
 -------------------
 ### Added
