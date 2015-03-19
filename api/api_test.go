@@ -87,7 +87,8 @@ func (suite *APITestSuite) SetupTest() {
 	suite.j = &job.Job{ID: "123"}
 	suite.jm = &mockJobManager{}
 
-	suite.svr = httptest.NewServer(NewServer(suite.jm).createRouter())
+	server, _ := NewServer(suite.jm).(*jobServer)
+	suite.svr = httptest.NewServer(server.createRouter())
 	suite.client = &http.Client{}
 
 	suite.serverErr = errors.New("oops")

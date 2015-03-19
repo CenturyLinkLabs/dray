@@ -25,11 +25,15 @@ func (w *statusLoggingResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+type Server interface {
+	Start(port int)
+}
+
 type jobServer struct {
 	jobManager job.JobManager
 }
 
-func NewServer(jm job.JobManager) *jobServer {
+func NewServer(jm job.JobManager) Server {
 	return &jobServer{jobManager: jm}
 }
 

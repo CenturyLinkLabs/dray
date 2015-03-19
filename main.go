@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	DefaultDockerEndpoint = "unix:///var/run/docker.sock"
-	DefaultLogLevel       = log.InfoLevel
+	defaultDockerEndpoint = "unix:///var/run/docker.sock"
+	defaultLogLevel       = log.InfoLevel
 )
 
 func init() {
 	log.SetOutput(os.Stdout)
-	log.SetLevel(DefaultLogLevel)
+	log.SetLevel(defaultLogLevel)
 }
 
 func main() {
@@ -55,7 +55,7 @@ func dockerEndpoint() string {
 	endpoint := os.Getenv("DOCKER_HOST")
 
 	if len(endpoint) == 0 {
-		endpoint = DefaultDockerEndpoint
+		endpoint = defaultDockerEndpoint
 	}
 
 	return endpoint
@@ -65,13 +65,13 @@ func logLevel() log.Level {
 	levelString := os.Getenv("LOG_LEVEL")
 
 	if len(levelString) == 0 {
-		return DefaultLogLevel
+		return defaultLogLevel
 	}
 
 	level, err := log.ParseLevel(strings.ToLower(levelString))
 	if err != nil {
 		log.Errorf("Invalid log level: %s", levelString)
-		return DefaultLogLevel
+		return defaultLogLevel
 	}
 
 	return level

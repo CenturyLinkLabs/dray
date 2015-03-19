@@ -41,12 +41,12 @@ type Job struct {
 	Status         string      `json:"status,omitempty"`
 }
 
-func (j Job) CurrentStep() *JobStep {
+func (j Job) currentStep() *JobStep {
 	return &j.Steps[j.StepsCompleted]
 }
 
-func (j Job) CurrentStepEnvironment() Environment {
-	return append(j.Environment, j.CurrentStep().Environment...)
+func (j Job) currentStepEnvironment() Environment {
+	return append(j.Environment, j.currentStep().Environment...)
 }
 
 type JobStep struct {
@@ -72,27 +72,27 @@ type JobLog struct {
 	Lines []string `json:"lines"`
 }
 
-func (js JobStep) UsesStdOutPipe() bool {
+func (js JobStep) usesStdOutPipe() bool {
 	return js.Output == "stdout" || js.Output == ""
 }
 
-func (js JobStep) UsesStdErrPipe() bool {
+func (js JobStep) usesStdErrPipe() bool {
 	return js.Output == "stderr"
 }
 
-func (js JobStep) UsesFilePipe() bool {
+func (js JobStep) usesFilePipe() bool {
 	return strings.HasPrefix(js.Output, "/")
 }
 
-func (js JobStep) FilePipePath() string {
+func (js JobStep) filePipePath() string {
 	return fmt.Sprintf("/tmp/%x", md5.Sum([]byte(js.Source)))
 }
 
-func (js JobStep) UsesDelimitedOutput() bool {
+func (js JobStep) usesDelimitedOutput() bool {
 	return len(js.BeginDelimiter) > 0 && len(js.EndDelimiter) > 0
 }
 
-func (e Environment) Stringify() []string {
+func (e Environment) stringify() []string {
 	envStrings := make([]string, len(e))
 
 	for i, v := range e {

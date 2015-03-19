@@ -86,25 +86,25 @@ func (jm *jobManager) executeStep(job *Job, stdIn io.Reader) (io.Reader, error) 
 	var outBuffer, errBuffer io.Writer
 	var stepOutput io.Reader
 
-	step := job.CurrentStep()
+	step := job.currentStep()
 	stdOutReader, stdOutWriter := io.Pipe()
 	stdErrReader, stdErrWriter := io.Pipe()
 
-	if step.UsesFilePipe() {
-		f, err := os.Create(step.FilePipePath())
+	if step.usesFilePipe() {
+		f, err := os.Create(step.filePipePath())
 		if err != nil {
 			return nil, err
 		}
 
 		f.Close()
-		defer os.Remove(step.FilePipePath())
+		defer os.Remove(step.filePipePath())
 	} else {
 		buffer := &bytes.Buffer{}
 		stepOutput = buffer
 
-		if step.UsesStdOutPipe() {
+		if step.usesStdOutPipe() {
 			outBuffer = buffer
-		} else if step.UsesStdErrPipe() {
+		} else if step.usesStdErrPipe() {
 			errBuffer = buffer
 		}
 	}
@@ -133,9 +133,9 @@ func (jm *jobManager) executeStep(job *Job, stdIn io.Reader) (io.Reader, error) 
 		return nil, err
 	}
 
-	if step.UsesFilePipe() {
+	if step.usesFilePipe() {
 		// Grab data written to pipe file
-		b, err := ioutil.ReadFile(step.FilePipePath())
+		b, err := ioutil.ReadFile(step.filePipePath())
 		if err != nil {
 			return nil, err
 		}
@@ -147,9 +147,9 @@ func (jm *jobManager) executeStep(job *Job, stdIn io.Reader) (io.Reader, error) 
 }
 
 func (jm *jobManager) capture(job *Job, r io.Reader, w io.Writer) {
-	step := job.CurrentStep()
+	step := job.currentStep()
 	scanner := bufio.NewScanner(r)
-	capture := !step.UsesDelimitedOutput()
+	capture := !step.usesDelimitedOutput()
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -158,7 +158,7 @@ func (jm *jobManager) capture(job *Job, r io.Reader, w io.Writer) {
 		jm.repository.AppendLogLine(job.ID, line)
 
 		if w != nil {
-			if step.UsesDelimitedOutput() && line == step.EndDelimiter {
+			if step.usesDelimitedOutput() && line == step.EndDelimiter {
 				capture = false
 			}
 
@@ -166,7 +166,7 @@ func (jm *jobManager) capture(job *Job, r io.Reader, w io.Writer) {
 				w.Write(append([]byte(line), '\n'))
 			}
 
-			if step.UsesDelimitedOutput() && line == step.BeginDelimiter {
+			if step.usesDelimitedOutput() && line == step.BeginDelimiter {
 				capture = true
 			}
 		}

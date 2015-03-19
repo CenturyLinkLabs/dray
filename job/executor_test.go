@@ -108,7 +108,7 @@ func (suite *JobStepExecutorTestSuite) TestStart_Success() {
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
 	suite.NoError(err)
-	suite.Equal(id, suite.job.CurrentStep().id)
+	suite.Equal(id, suite.job.currentStep().id)
 
 	stdOutScanner := bufio.NewScanner(stdOutReader)
 	stdOutScanner.Scan()
@@ -232,7 +232,7 @@ func (suite *JobStepExecutorTestSuite) TestStart_PullError() {
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_ForceRefresh() {
-	suite.job.CurrentStep().Refresh = true
+	suite.job.currentStep().Refresh = true
 	inspectCalled := false
 	pullCalled := false
 	removeCalled := false

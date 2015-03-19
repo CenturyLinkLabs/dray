@@ -42,12 +42,12 @@ func (e *jobStepExecutor) Start(j *Job, stdIn io.Reader, stdOut, stdErr io.Write
 		return err
 	}
 
-	j.CurrentStep().id = id
+	j.currentStep().id = id
 	return nil
 }
 
 func (e *jobStepExecutor) Inspect(j *Job) error {
-	container, err := e.client.InspectContainer(j.CurrentStep().id)
+	container, err := e.client.InspectContainer(j.currentStep().id)
 
 	if err != nil {
 		return err
@@ -62,20 +62,20 @@ func (e *jobStepExecutor) Inspect(j *Job) error {
 
 func (e *jobStepExecutor) CleanUp(j *Job) error {
 	removeOpts := docker.RemoveContainerOptions{
-		ID: j.CurrentStep().id,
+		ID: j.currentStep().id,
 	}
 
 	err := e.client.RemoveContainer(removeOpts)
 
 	if err == nil {
-		log.Infof("Container %s removed", j.CurrentStep().id)
+		log.Infof("Container %s removed", j.currentStep().id)
 	}
 
 	return err
 }
 
 func (e *jobStepExecutor) createContainer(j *Job) (string, error) {
-	step := j.CurrentStep()
+	step := j.currentStep()
 	if err := e.ensureImage(step.Source, step.Refresh); err != nil {
 		return "", err
 	}
@@ -83,15 +83,15 @@ func (e *jobStepExecutor) createContainer(j *Job) (string, error) {
 	opts := docker.CreateContainerOptions{
 		Config: &docker.Config{
 			Image:     step.Source,
-			Env:       j.CurrentStepEnvironment().Stringify(),
+			Env:       j.currentStepEnvironment().stringify(),
 			OpenStdin: true,
 			StdinOnce: true,
 		},
 	}
 
-	if step.UsesFilePipe() {
+	if step.usesFilePipe() {
 		opts.HostConfig = &docker.HostConfig{
-			Binds: []string{fmt.Sprintf("%s:%s", step.FilePipePath(), step.Output)},
+			Binds: []string{fmt.Sprintf("%s:%s", step.filePipePath(), step.Output)},
 		}
 	}
 
