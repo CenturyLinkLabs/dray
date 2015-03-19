@@ -15,8 +15,10 @@ const (
 	jobsKey = "jobs"
 )
 
+// NotFoundError is an error returned when a referenced Job cannot be found.
 type NotFoundError string
 
+// Error returns the error string for the NotFoundError
 func (s NotFoundError) Error() string {
 	return fmt.Sprintf("Cannot find job with ID %s", string(s))
 }
@@ -25,6 +27,8 @@ type redisJobRepository struct {
 	pool *pool.Pool
 }
 
+// NewJobRepository returns a new JobRepository instance with a connection to
+// the specified Redis endpoint.
 func NewJobRepository(host string) JobRepository {
 	pool, err := pool.NewPool("tcp", host, 4)
 	if err != nil {

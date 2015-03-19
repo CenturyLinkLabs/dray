@@ -25,6 +25,7 @@ func (w *statusLoggingResponseWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
+// A Server is the HTTP server which reponds to Dray API requests.
 type Server interface {
 	Start(port int)
 }
@@ -33,6 +34,8 @@ type jobServer struct {
 	jobManager job.JobManager
 }
 
+// NewServer returns a new Server instance which will handle Dray service
+// requests and defer work to the specified JobManager.
 func NewServer(jm job.JobManager) Server {
 	return &jobServer{jobManager: jm}
 }

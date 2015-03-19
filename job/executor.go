@@ -12,6 +12,8 @@ type jobStepExecutor struct {
 	client *docker.Client
 }
 
+// NewExecutor returns a JobStepExecutor instance with a connection to the
+// specified Docker API endpoint.
 func NewExecutor(dockerEndpoint string) JobStepExecutor {
 	client, err := docker.NewClient(dockerEndpoint)
 	if err != nil {

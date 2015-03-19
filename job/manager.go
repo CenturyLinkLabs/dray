@@ -26,6 +26,8 @@ type jobManager struct {
 	executor   JobStepExecutor
 }
 
+// NewJobManager returns a JobManager instance with connections to the
+// specified JobRepository and JobStepExecutor.
 func NewJobManager(r JobRepository, e JobStepExecutor) JobManager {
 	return &jobManager{
 		repository: r,
