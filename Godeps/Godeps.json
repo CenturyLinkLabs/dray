@@ -3,6 +3,10 @@
 	"GoVersion": "go1.4.1",
 	"Deps": [
 		{
+			"ImportPath": "github.com/CenturyLinkLabs/testmux",
+			"Rev": "f51b74e806d849fc8aa4fff5d2729d9955fb6383"
+		},
+		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.6.4",
 			"Rev": "58f778a886b1e483dccc3b61085ccf347bf1a37e"

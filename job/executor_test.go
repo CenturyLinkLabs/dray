@@ -3,12 +3,13 @@ package job
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/CenturyLinkLabs/testmux"
+	log "github.com/Sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
@@ -52,13 +53,15 @@ type JobStepExecutorTestSuite struct {
 
 	job     *Job
 	jobStep *JobStep
-	mux     *http.ServeMux
+	mux     *testmux.Router
 	server  *httptest.Server
 	jse     JobStepExecutor
 }
 
 func (suite *JobStepExecutorTestSuite) SetupTest() {
-	suite.mux = http.NewServeMux()
+	log.SetLevel(log.PanicLevel)
+
+	suite.mux = &testmux.Router{}
 	suite.server = httptest.NewServer(suite.mux)
 	suite.jse = NewExecutor(suite.server.URL)
 
@@ -77,42 +80,32 @@ func (suite *JobStepExecutorTestSuite) TearDownTest() {
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_Success() {
-	id := "foo123abc"
 	stdIn := &bytes.Buffer{}
 	stdOutReader, stdOutWriter := io.Pipe()
 	_, stdErrWriter := io.Pipe()
 
-	inspectPath := fmt.Sprintf("/images/%s/json", suite.jobStep.Source)
-	suite.mux.HandleFunc(inspectPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "{\"ID\":\"xyz789\"}")
-	})
-
-	suite.mux.HandleFunc("/containers/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "{\"ID\":\""+id+"\"}")
-	})
-
-	attachPath := fmt.Sprintf("/containers/%s/attach", id)
-	suite.mux.HandleFunc(attachPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
-		w.Write([]byte("hello"))
-	})
-
-	startPath := fmt.Sprintf("/containers/%s/start", id)
-	suite.mux.HandleFunc(startPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
-	})
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusOK,
+		"{\"ID\":\"xyz789\"}")
+	suite.mux.RegisterResp("POST", "/containers/create", http.StatusCreated,
+		"{\"ID\":\"123abc\"}")
+	suite.mux.RegisterResp("POST", "/containers/123abc/start", http.StatusNoContent, "")
+	suite.mux.RegisterFunc("POST", "/containers/123abc/attach",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
+			w.Write([]byte("hello"))
+		})
 
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
 	suite.NoError(err)
-	suite.Equal(id, suite.job.currentStep().id)
+	suite.Equal("123abc", suite.job.currentStep().id)
 
 	stdOutScanner := bufio.NewScanner(stdOutReader)
 	stdOutScanner.Scan()
 	suite.Equal("hello", stdOutScanner.Text())
+
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_CreateError() {
@@ -120,231 +113,161 @@ func (suite *JobStepExecutorTestSuite) TestStart_CreateError() {
 	_, stdOutWriter := io.Pipe()
 	_, stdErrWriter := io.Pipe()
 
-	inspectPath := fmt.Sprintf("/images/%s/json", suite.jobStep.Source)
-	suite.mux.HandleFunc(inspectPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "{\"ID\":\"xyz789\"}")
-	})
-
-	suite.mux.HandleFunc("/containers/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	})
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusOK,
+		"{\"ID\":\"xyz789\"}")
+	suite.mux.RegisterResp("POST", "/containers/create", http.StatusInternalServerError, "")
 
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
-	suite.EqualError(err, "API error (500): ")
+	suite.EqualError(err, "API error (500): \n")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_StartError() {
-	id := "foo123abc"
 	stdIn := &bytes.Buffer{}
-	_, stdOutWriter := io.Pipe()
+	stdOutReader, stdOutWriter := io.Pipe()
 	_, stdErrWriter := io.Pipe()
 
-	inspectPath := fmt.Sprintf("/images/%s/json", suite.jobStep.Source)
-	suite.mux.HandleFunc(inspectPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "{\"ID\":\"xyz789\"}")
-	})
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusOK,
+		"{\"ID\":\"xyz789\"}")
+	suite.mux.RegisterResp("POST", "/containers/create", http.StatusCreated,
+		"{\"ID\":\"123abc\"}")
+	suite.mux.RegisterResp("POST", "/containers/123abc/start", http.StatusBadRequest, "")
 
-	suite.mux.HandleFunc("/containers/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "{\"ID\":\""+id+"\"}")
-	})
-
-	attachPath := fmt.Sprintf("/containers/%s/attach", id)
-	suite.mux.HandleFunc(attachPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
-		w.Write([]byte("hello"))
-	})
-
-	startPath := fmt.Sprintf("/containers/%s/start", id)
-	suite.mux.HandleFunc(startPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-	})
+	suite.mux.RegisterFunc("POST", "/containers/123abc/attach",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
+			w.Write([]byte("hello"))
+		})
 
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
-	suite.EqualError(err, "API error (400): ")
+	// Must read in order to block until the attach call is complete
+	stdOutReader.Read([]byte{})
+
+	suite.EqualError(err, "API error (400): \n")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_MissingImage() {
-	pullCalled := false
-	id := "foo123abc"
 	stdIn := &bytes.Buffer{}
-	_, stdOutWriter := io.Pipe()
+	stdOutReader, stdOutWriter := io.Pipe()
 	_, stdErrWriter := io.Pipe()
 
-	inspectPath := fmt.Sprintf("/images/%s/json", suite.jobStep.Source)
-	suite.mux.HandleFunc(inspectPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusNotFound, "")
+	suite.mux.RegisterResp("POST", "/images/create", http.StatusOK, "")
+	suite.mux.RegisterResp("POST", "/containers/create", http.StatusCreated,
+		"{\"ID\":\"123abc\"}")
+	suite.mux.RegisterResp("POST", "/containers/123abc/start", http.StatusOK, "")
 
-	suite.mux.HandleFunc("/images/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		pullCalled = true
-	})
-
-	suite.mux.HandleFunc("/containers/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, "{\"ID\":\""+id+"\"}")
-	})
-
-	attachPath := fmt.Sprintf("/containers/%s/attach", id)
-	suite.mux.HandleFunc(attachPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
-		w.Write([]byte("hello"))
-	})
-
-	startPath := fmt.Sprintf("/containers/%s/start", id)
-	suite.mux.HandleFunc(startPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	suite.mux.RegisterFunc("POST", "/containers/123abc/attach",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
+			w.Write([]byte("hello"))
+		})
 
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
+	// Must read in order to block until the attach call is complete
+	stdOutReader.Read([]byte{})
+
 	suite.NoError(err)
-	suite.True(pullCalled, "Docker image not pulled")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_PullError() {
-	pullCalled := false
 	stdIn := &bytes.Buffer{}
 	_, stdOutWriter := io.Pipe()
 	_, stdErrWriter := io.Pipe()
 
-	inspectPath := fmt.Sprintf("/images/%s/json", suite.jobStep.Source)
-	suite.mux.HandleFunc(inspectPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
-
-	suite.mux.HandleFunc("/images/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		pullCalled = true
-	})
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusNotFound, "")
+	suite.mux.RegisterResp("POST", "/images/create", http.StatusNotFound, "")
 
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
-	suite.EqualError(err, "API error (404): ")
-	suite.True(pullCalled, "Docker image not pulled")
+	suite.EqualError(err, "API error (404): \n")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestStart_ForceRefresh() {
 	suite.job.currentStep().Refresh = true
-	inspectCalled := false
-	pullCalled := false
-	removeCalled := false
-	imageID := "xyz890"
-	id := "foo123abc"
 	stdIn := &bytes.Buffer{}
-	_, stdOutWriter := io.Pipe()
+	stdOutReader, stdOutWriter := io.Pipe()
 	_, stdErrWriter := io.Pipe()
 
-	inspectPath := fmt.Sprintf("/images/%s/json", suite.jobStep.Source)
-	suite.mux.HandleFunc(inspectPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		if inspectCalled {
-			fmt.Fprintf(w, "{\"Id\":\"%s\"}", "15930e")
-		} else {
-			fmt.Fprintf(w, "{\"Id\":\"%s\"}", imageID)
-		}
-		inspectCalled = true
-	})
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusOK,
+		"{\"Id\":\"xyz890\"}")
+	suite.mux.RegisterResp("POST", "/images/create", http.StatusOK, "")
+	suite.mux.RegisterResp("GET", "/images/foo/json", http.StatusOK,
+		"{\"Id\":\"15930e\"}")
+	suite.mux.RegisterResp("DELETE", "/images/xyz890", http.StatusOK, "")
+	suite.mux.RegisterResp("POST", "/containers/create", http.StatusCreated,
+		"{\"ID\":\"123abc\"}")
+	suite.mux.RegisterResp("POST", "/containers/123abc/start", http.StatusOK, "")
 
-	suite.mux.HandleFunc("/images/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		pullCalled = true
-	})
-
-	removePath := fmt.Sprintf("/images/%s", imageID)
-	suite.mux.HandleFunc(removePath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		removeCalled = true
-	})
-
-	suite.mux.HandleFunc("/containers/create", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, "{\"ID\":\"%s\"}", id)
-	})
-
-	attachPath := fmt.Sprintf("/containers/%s/attach", id)
-	suite.mux.HandleFunc(attachPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
-		w.Write([]byte("hello"))
-	})
-
-	startPath := fmt.Sprintf("/containers/%s/start", id)
-	suite.mux.HandleFunc(startPath, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	suite.mux.RegisterFunc("POST", "/containers/123abc/attach",
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte{1, 0, 0, 0, 0, 0, 0, 5})
+			w.Write([]byte("hello"))
+		})
 
 	err := suite.jse.Start(suite.job, stdIn, stdOutWriter, stdErrWriter)
 
+	// Must read in order to block until the attach call is complete
+	stdOutReader.Read([]byte{})
+
 	suite.NoError(err)
-	suite.True(pullCalled, "Docker image not pulled")
-	suite.True(removeCalled, "Docker image not removed")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestInspect_Success() {
-	path := fmt.Sprintf("/containers/%s/json", suite.jobStep.id)
-	suite.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		suite.Equal("GET", r.Method)
-		fmt.Fprint(w, "{\"State\":{\"ExitCode\":0}}")
-	})
+	suite.mux.RegisterResp("GET", "/containers/abc123/json", http.StatusOK,
+		"{\"State\":{\"ExitCode\":0}}")
 
 	err := suite.jse.Inspect(suite.job)
 
 	suite.NoError(err)
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestInspect_Error() {
-	path := fmt.Sprintf("/containers/%s/json", suite.jobStep.id)
-	suite.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		suite.Equal("GET", r.Method)
-		w.WriteHeader(http.StatusNotFound)
-	})
+	suite.mux.RegisterResp("GET", "/containers/abc123/json", http.StatusNotFound, "")
 
 	err := suite.jse.Inspect(suite.job)
 
 	suite.EqualError(err, "No such container: abc123")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestInspect_ErrorExit() {
-	path := fmt.Sprintf("/containers/%s/json", suite.jobStep.id)
-	suite.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		suite.Equal("GET", r.Method)
-		fmt.Fprint(w, "{\"State\":{\"ExitCode\":99}}")
-	})
+	suite.mux.RegisterResp("GET", "/containers/abc123/json", http.StatusOK,
+		"{\"State\":{\"ExitCode\":99}}")
 
 	err := suite.jse.Inspect(suite.job)
 
 	suite.EqualError(err, "Container exit code: 99")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestCleanUp_Success() {
-	path := fmt.Sprintf("/containers/%s", suite.jobStep.id)
-	suite.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		suite.Equal("DELETE", r.Method)
-	})
+	suite.mux.RegisterResp("DELETE", "/containers/abc123", http.StatusNoContent, "")
 
 	err := suite.jse.CleanUp(suite.job)
 
 	suite.NoError(err)
+	suite.mux.AssertVisited(suite.T())
 }
 
 func (suite *JobStepExecutorTestSuite) TestCleanUp_Error() {
-	path := fmt.Sprintf("/containers/%s", suite.jobStep.id)
-	suite.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		suite.Equal("DELETE", r.Method)
-		w.WriteHeader(http.StatusNotFound)
-	})
+	suite.mux.RegisterResp("DELETE", "/containers/abc123", http.StatusNotFound, "")
 
 	err := suite.jse.CleanUp(suite.job)
 
 	suite.EqualError(err, "No such container: abc123")
+	suite.mux.AssertVisited(suite.T())
 }
 
 func TestJobStepExecutor(t *testing.T) {
