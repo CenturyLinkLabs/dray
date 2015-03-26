@@ -4,7 +4,7 @@
 
 [![Circle CI](https://circleci.com/gh/CenturyLinkLabs/dray.svg?style=svg)](https://circleci.com/gh/CenturyLinkLabs/dray)
 [![GoDoc](http://godoc.org/github.com/CenturyLinkLabs/dray?status.png)](http://godoc.org/github.com/CenturyLinkLabs/dray)
-[centurylink/dray](https://registry.hub.docker.com/u/centurylink/dray/)
+[![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://registry.hub.docker.com/u/centurylink/dray/)
 
 An engine for managing the execution of container-based workflows.
 
