@@ -203,7 +203,7 @@ The response body will echo back the submitted job description including the ID 
 	    {  
 	      "name":"reverse",
 	      "source":"centurylink/reverse"
-	    },	    
+	    }	    
 	  ]
 	}
     
