@@ -10,6 +10,13 @@ $nav_item_width: (100/$nav_item_count) * 1%
 $thin_font: "Helvetica Neue", Helvetica, Arial, sans-serif
 $normal_font: Helvetica, Arial, sans-serif
 
+=clearfix
+  clear: both
+  content: " "
+  display: block
+  height: 0
+  font-size: 0
+  overflow: hidden
 
 *
   box-sizing: border-box
@@ -52,10 +59,10 @@ a
     text-decoration: underline
 
 header
-  overflow: auto
   background-image: url('../images/bg_dray_grid.png')
   background-attachment: fixed
-
+  &:after
+    +clearfix
   a.logo
     width: 110px
     height: 110px
@@ -75,7 +82,8 @@ header
 section
   width: 100%
   padding: 25px 20px
-  overflow: auto
+  &:after
+    +clearfix
   ul
     li
       margin-bottom: .8em
@@ -252,11 +260,13 @@ a.button
 
     nav
       display: block
-      overflow: auto
       margin-top: 20px
+      &:after
+        +clearfix
       ul
         float: right
-        overflow: auto
+        &:after
+          +clearfix
         li
           float: left
           margin-right: 20px

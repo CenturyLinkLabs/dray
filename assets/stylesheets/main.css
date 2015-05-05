@@ -39,9 +39,15 @@ a {
     text-decoration: underline; }
 
 header {
-  overflow: auto;
   background-image: url("../images/bg_dray_grid.png");
   background-attachment: fixed; }
+  header:after {
+    clear: both;
+    content: " ";
+    display: block;
+    height: 0;
+    font-size: 0;
+    overflow: hidden; }
   header a.logo {
     width: 110px;
     height: 110px;
@@ -59,14 +65,20 @@ header {
 
 section {
   width: 100%;
-  padding: 25px 20px;
-  overflow: auto; }
+  padding: 25px 20px; }
+  section:after {
+    clear: both;
+    content: " ";
+    display: block;
+    height: 0;
+    font-size: 0;
+    overflow: hidden; }
   section ul li {
     margin-bottom: 0.8em;
     font-weight: bold; }
   section.hero {
     padding: 20px 20px 60px 20px;
-    color: white;
+    color: #ffffff;
     background-color: #29373f;
     background-image: url("../images/bg_dray_grid.png"); }
     section.hero p {
@@ -75,7 +87,7 @@ section {
       font-weight: 200;
       line-height: 45px; }
   section.copy {
-    background-color: white; }
+    background-color: #ffffff; }
     section.copy p {
       margin-bottom: 1.5em;
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -91,7 +103,7 @@ section {
     background-color: #29373f; }
     section.call-to-action a.link {
       margin-bottom: 0;
-      color: white;
+      color: #ffffff;
       text-align: center;
       display: inline-block;
       width: 100%; }
@@ -99,8 +111,8 @@ section {
       margin-bottom: 15px; }
   section.graphic {
     display: none;
-    background-color: white;
-    border-top: 1px solid #cccccc; }
+    background-color: #ffffff;
+    border-top: 1px solid #ccc; }
   section.newsletter {
     background-color: #f1f1f1; }
     section.newsletter p {
@@ -109,12 +121,12 @@ section {
       width: 100%; }
     section.newsletter input[type='email'], section.newsletter input[type='text'] {
       text-align: left;
-      border: 1px solid #aaaaaa;
+      border: 1px solid #aaa;
       padding: 10px;
       margin-bottom: 15px; }
     section.newsletter input[type='submit'] {
-      color: white;
-      background-color: #777777;
+      color: #ffffff;
+      background-color: #777;
       font-size: 14px;
       padding: 9px 20px;
       border: none;
@@ -123,7 +135,7 @@ section {
       -webkit-appearance: none; }
 
 footer {
-  background-color: white;
+  background-color: #ffffff;
   padding: 25px 20px; }
   footer small {
     font-size: 12px;
@@ -131,12 +143,12 @@ footer {
   footer .logo {
     height: 45px;
     margin-top: 38px;
-    background: url("../images/ctl_logo_base.svg") no-repeat white;
+    background: url("../images/ctl_logo_base.svg") no-repeat #FFF;
     background-size: 210px 45px; }
 
 a.button {
   display: block;
-  color: white;
+  color: #ffffff;
   background-color: #ff411e;
   padding: 22px 0 20px;
   text-align: center;
@@ -155,7 +167,7 @@ a.button {
     section.graphic p {
       font-size: 12px; }
       section.graphic p.input, section.graphic p.output {
-        color: white;
+        color: #ffffff;
         width: 16%;
         padding: 15px;
         margin: 3% 0 0;
@@ -226,11 +238,23 @@ a.button {
       background-size: 110px 110px; }
     header nav {
       display: block;
-      overflow: auto;
       margin-top: 20px; }
+      header nav:after {
+        clear: both;
+        content: " ";
+        display: block;
+        height: 0;
+        font-size: 0;
+        overflow: hidden; }
       header nav ul {
-        float: right;
-        overflow: auto; }
+        float: right; }
+        header nav ul:after {
+          clear: both;
+          content: " ";
+          display: block;
+          height: 0;
+          font-size: 0;
+          overflow: hidden; }
         header nav ul li {
           float: left;
           margin-right: 20px; }
@@ -238,7 +262,7 @@ a.button {
             width: 100%;
             display: block;
             padding: 20px;
-            color: white;
+            color: #ffffff;
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 1px; }

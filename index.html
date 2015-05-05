@@ -13,6 +13,7 @@
     <meta name="msapplication-TileImage" content="assets/images/favicons/mstile-144x144.png">
     <link rel="stylesheet" href="assets/stylesheets/reset.css" type="text/css">
     <link rel="stylesheet" href="assets/stylesheets/main.css" type="text/css">
+    <link rel="stylesheet" href="assets/stylesheets/about_ctl.css" type="text/css">
     <link rel="stylesheet" href="assets/stylesheets/sidr.css" type="text/css">
     <script src="assets/javascripts/ga.js"></script>
   </head>
@@ -22,6 +23,64 @@
       <a href="#main-nav" id="nav-toggle"></a>
       <nav id="navigation">
         <ul>
+          <li class='about'>
+            <nav class="ctl">
+              <ul>
+                <li><a href="">About</a>
+                  <ul>
+                    <li>
+                      <div class='about-contents'>
+                        <img class="logo" src="assets/images/about_ctl/logo_dray_long.svg" width="150">
+                        <p class="clear strong">
+                          Dray is an engine for managing the execution of container-based workflows.
+                        </p>
+                        <p>
+                          <a href="https://github.com/CenturyLinkLabs/dray" target="_blank">Dray on GitHub</a>
+                        </p>
+                        <hr>
+                        <h3>Other Projects from CenturyLink Labs</h3>
+                        <a class="project" href="http://imagelayers.io" target="_blank">
+                          <article>
+                            <div class="ilayers-logo"></div>
+                            <h4>ImageLayers.io</h4>
+                            <p>
+                              Docker image layer visualization.<br>
+                              <mark>ImageLayers.io</mark>
+                            </p>
+                          </article>
+                        </a>
+                        <a class="project" href="http://panamax.io" target="_blank">
+                          <article>
+                            <div class="pmx-logo"></div>
+                            <h4>Panamax</h4>
+                            <p>
+                              Docker Management for Humans.<br>
+                              <mark>panamax.io</mark>
+                            </p>
+                          </article>
+                        </a>
+                        <a class="project" href="http://lorry.io" target="_blank">
+                          <article>
+                            <div class="lorry-logo"></div>
+                            <h4>Lorry</h4>
+                            <p>
+                              docker-compose.yml editor.<br>
+                              <mark>lorry.io</mark>
+                            </p>
+                          </article>
+                        </a>
+                        <div class="clear"></div>
+                        <hr>
+                        <h4>
+                          Read tutorials and articles about these tools at <a href="http://www.centurylinklabs.com" target="_blank">CenturyLinkLabs.com</a>
+                        </h4>
+                      </li>
+                    </ul>
+                  </div>
+                </li>
+              </ul>
+            </nav>
+          </li>
           <li><a href="https://registry.hub.docker.com/u/centurylink/dray/" onclick="trackOutboundLink(‘https://registry.hub.docker.com/u/centurylink/dray/’); return false;">Dray on the Docker Hub</a></li>
           <li><a href="https://github.com/CenturyLinkLabs/dray" onclick="trackOutboundLink(‘https://github.com/CenturyLinkLabs/dray’); return false;">Dray on GitHub</a></li>
         </ul>
@@ -36,7 +95,7 @@
         <a class="button" href="https://registry.hub.docker.com/u/centurylink/dray/" onclick="trackOutboundLink(‘https://registry.hub.docker.com/u/centurylink/dray/’); return false;">Download Dray from the Docker Hub</a>
       </div>
     </section>
-   
+
     <section class="copy">
       <div class="inner">
         <h3>What Dray Does</h3>
@@ -56,7 +115,7 @@
         </div>
       </div>
     </section>
-    
+
     <section class="graphic">
       <div class="inner">
         <p class="input"><span>Input.</span>Dray receives a job description -- the list of Docker images to run along with any environment variables to be injected into those images.</p>
@@ -68,7 +127,7 @@
         </div>
       </div>
     </section>
-    
+
     <section class="call-to-action">
       <div class="inner">
         <div class="column-50 left">
@@ -79,7 +138,7 @@
         </div>
       </div>
     </section>
-    
+
     <section class="newsletter">
       <div class="inner">
         <div class="column-50 left">
@@ -108,7 +167,7 @@
           </div>
           <!--End mc_embed_signup-->
         </div>
-      </div>    
+      </div>
     </section>
     <footer>
         <small>&copy; 2015 CenturyLink - The Dray project is provided under the Apache 2.0 license. All Rights Reserved.</small>
