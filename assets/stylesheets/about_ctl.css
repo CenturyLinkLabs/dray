@@ -29,9 +29,10 @@ nav.ctl .about-contents h3 {
 nav.ctl .about-contents h4 {
   font-size: 16px;
   font-weight: bold;
+  padding-bottom: 1em;
 }
 
-nav.ctl .about-contents hr + h4 {
+nav.ctl .about-contents h4:last-child {
   margin-bottom: 0;
   padding-bottom: 0;
 }
@@ -96,7 +97,7 @@ nav.ctl > ul > li:hover > ul {
 }
 /* line 65, ../../app/styles/ctl.scss */
 nav.ctl > ul > li:hover > ul > li {
-  height: 490px;
+  height: 491px;
 }
 /* line 71, ../../app/styles/ctl.scss */
 nav.ctl > ul > li > a {
