@@ -7,7 +7,6 @@
 [![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://registry.hub.docker.com/u/centurylink/dray/)
 [![](https://badge.imagelayers.io/centurylink/dray.svg)](https://imagelayers.io/?images=centurylink/dray:latest 'Get your own badge on imagelayers.io')
 [![Analytics](https://ga-beacon.appspot.com/UA-49491413-7/dray/README)](https://github.com/CenturyLinkLabs/dray)
-UA-49491413-7
 
 An engine for managing the execution of container-based workflows.
 
