@@ -4,6 +4,7 @@ dray:
    - redis
   volumes:
    - /var/run/docker.sock:/var/run/docker.sock
+   - /tmp:/tmp
   ports:
    - "3000:3000"
 redis:
