@@ -3,11 +3,13 @@ package job
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -15,6 +17,8 @@ import (
 const (
 	fieldStatus         = "status"
 	fieldCompletedSteps = "completedSteps"
+	fieldCreatedAt      = "createdAt"
+	fieldFinishedIn     = "finishedIn"
 
 	statusRunning  = "running"
 	statusError    = "error"
@@ -51,8 +55,10 @@ func (jm *jobManager) Execute(job *Job) error {
 	var capture io.Reader
 	var err error
 	status := statusRunning
+	createdAt := time.Now()
 
 	jm.repository.Update(job.ID, fieldStatus, status)
+	jm.repository.Update(job.ID, fieldCreatedAt, createdAt.String())
 
 	for i := range job.Steps {
 		capture, err = jm.executeStep(job, capture)
@@ -72,6 +78,8 @@ func (jm *jobManager) Execute(job *Job) error {
 	}
 
 	jm.repository.Update(job.ID, fieldStatus, status)
+	finishedIn := float32(time.Since(createdAt)) / float32(time.Second)
+	jm.repository.Update(job.ID, fieldFinishedIn, fmt.Sprintf("%f", finishedIn))
 	return err
 }
 

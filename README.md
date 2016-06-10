@@ -15,7 +15,7 @@ services. These are things like a web application, database or message queue -- 
 that are running continuously, waiting to service requests.
 
 Another interesting use case for Docker is to wrap short-lived, single-purpose tasks.
-Perhaps it's a Ruby app that needs to be execute periodically or a set of bash scripts 
+Perhaps it's a Ruby app that needs to be execute periodically or a set of bash scripts
 that need to be executed in sequence. Much like the services described above, these things
 can be wrapped in a Docker container to provide an isolated execution environment. The only
 real difference is that the task containers exit when they've finished their work while the
@@ -27,9 +27,9 @@ the output of one container feed the input of the next container. Something like
 
     cat customers.txt | sort | uniq | wc -l
 
-This is the service that Dray provides. Dray allows you to define a serial workflow, or job, as a 
-list of Docker containers with each container encapsulating a step in the workflow. Dray 
-will ensure that each step of the workflow (each container) is started in the correct 
+This is the service that Dray provides. Dray allows you to define a serial workflow, or job, as a
+list of Docker containers with each container encapsulating a step in the workflow. Dray
+will ensure that each step of the workflow (each container) is started in the correct
 order and handles the work of marshaling data between the different steps.
 
 ## Overview
@@ -69,7 +69,7 @@ Dray is packaged as a small Docker image and can easily be executed with the Doc
 Dray relies on [Redis](http://redis.io/) for persisting information about jobs so you'll first need to start one of the [numerous](https://registry.hub.docker.com/search?q=redis&searchfield=) Redis Docker images. In the example below we're simply using the [official Redis image](https://registry.hub.docker.com/_/redis/):
 
     docker run -d --name redis redis
-    
+
 Once Redis is running, you can start the Dray container with the following:
 
     docker run -d --name dray \
@@ -99,7 +99,7 @@ If you'd like to use [Docker Compose](https://docs.docker.com/compose/) to start
 	   - "3000:3000"
 	redis:
 	  image: redis
-	  
+
 With this `docker-compose.yml` file you can start Redis and Dray by simply issuing a `docker-compose up -d` command.
 
 ### Configuration
@@ -115,7 +115,7 @@ Environment variables can be passed to the Dray container by using the `-e` flag
       -v /var/run/docker.sock:/var/run/docker.sock \
       -p 3000:3000 \
       centurylink/dray:latest
-      
+
 ## Example
 Below is an actual Dray job description that is being used as part of the [Panamax](http://panamax.io/) project. The goal of this job is to provision a cluster of servers on AWS and then install some software on those servers.
 
@@ -157,8 +157,8 @@ Dray jobs are created and monitored using the API endpoints described below.
 ### Create Job
 
     POST /jobs
-    
-Submits a new job for execution. The execution of the job happens asynchronous to the API call -- the API will respond immediately while execution happens in the background. 
+
+Submits a new job for execution. The execution of the job happens asynchronous to the API call -- the API will respond immediately while execution happens in the background.
 
 The response body will echo back the submitted job description including the ID assigned to the job. The returned job ID can be used to retrieve information about the job using either the `/jobs/(id)` or `/jobs/(id)/log` endpoints.
 
@@ -187,7 +187,7 @@ The response body will echo back the submitted job description including the ID 
 
     POST /jobs HTTP/1.1
     Content-Type: application/json
-    
+
 	{  
 	  "name":"Demo Job",
 	  "steps":[  
@@ -208,12 +208,12 @@ The response body will echo back the submitted job description including the ID 
 	    },	    
 	  ]
 	}
-    
+
 **Example Response:**
 
 	HTTP/1.1 201 Created
 	Content-Type: application/json
-	
+
 	{  
 	  "id":"51E0E756-A6B4-9CC7-67BD-364970C2268C",
 	  "name":"Demo Job",
@@ -235,27 +235,27 @@ The response body will echo back the submitted job description including the ID 
 	    },	    
 	  ]
 	}
-	
+
 **Status Codes:**
 
 * **201** - no error
 * **500** - server error
-	  
+
 ### List Jobs
 
     GET /jobs
-    
+
 Returns a list of all the job IDs. Every time that a job is started, it is assigned a unique ID and some basic information is persisted. This call will return the IDs of all the persisted jobs.
 
 **Example Request:**
 
     GET /jobs HTTP/1.1
-    
+
 **Example Response:**
 
 	HTTP/1.1 200 OK
 	Content-Type: application/json
-	
+
 	[  
 	  {  
 	    "id":"E2C7017E-449D-B4AA-1BEB-F85224DFC0E1"
@@ -267,7 +267,7 @@ Returns a list of all the job IDs. Every time that a job is started, it is assig
 	    "id":"51E0E756-A6B4-9CC7-67BD-364970C2268C"
 	  }
 	]
-	
+
 **Status Codes:**
 
 * **200** - no error
@@ -276,26 +276,28 @@ Returns a list of all the job IDs. Every time that a job is started, it is assig
 ### Get Job
 
     GET /jobs/(id)
-    
-Returns the state of the specified job. The response will include the number of steps which have been completed and an overall status for the job. 
+
+Returns the state of the specified job. The response will include the number of steps which have been completed and an overall status for the job.
 
 The status will be one of "running", "complete", or "error". The "error" status indicates that one of the steps exited with a non-zero exit code.
 
 **Exampel Request:**
 
     GET /jobs/51E0E756-A6B4-9CC7-67BD-364970C2268C HTTP/1.1
-    
+
 **Example Response:**
 
     HTTP/1.1 200 OK
     Content-Type: application/json
-    
+
 	{
-  	  "id": "51E0E756-A6B4-9CC7-67BD-364970C2268C",
+	  "id": "51E0E756-A6B4-9CC7-67BD-364970C2268C",
 	  "stepsCompleted": 2,
-	  "status": "complete"
+	  "status": "complete",
+	  "createdAt": "2016-06-10 16:15:23.794364271 +0000 UTC",
+	  "finishedIn": 36.64859
 	}
-	
+
 **Status Codes:**
 
 * **200** - no error
@@ -305,7 +307,7 @@ The status will be one of "running", "complete", or "error". The "error" status 
 ### Get Job Log
 
     GET /jobs/(id)/log
-    
+
 Retrieves the log output of the specified job. While a job is executing any data written to the *stdout* or *stderr* streams (by any of the steps) is persisted and made available via this API endpoint.
 
 **Querystring Params:**
@@ -315,12 +317,12 @@ Retrieves the log output of the specified job. While a job is executing any data
 **Example Request:**
 
     GET /jobs/51E0E756-A6B4-9CC7-67BD-364970C2268C/log?index=0 HTTP/1.1
-    
+
 **Example Response:**
 
     HTTP/1.1 200 OK
     Content-Type: application/json
-    
+
     {
       "lines": [
         "Standard output line 1",
@@ -329,27 +331,27 @@ Retrieves the log output of the specified job. While a job is executing any data
 		"Standard error line 1",				
       ]
     }
-      
+
 **Status Codes:**
 
 * **200** - no error
 * **404** - no such job
 * **500** - server error
-      
+
 ### Delete Job
 
     DELETE /jobs/(id)
-   
+
 Deletes all the information persisted for a given job ID. Note that this will **not** stop a running job, it merely removes all the information persisted for the job in Redis.
 
 **Example Request:**
 
     DELETE /jobs/51E0E756-A6B4-9CC7-67BD-364970C2268C HTTP/1.1
-    
+
 **Example Response:**
 
     HTTP/1.1 204 No Content
-    
+
 **Status Codes:**
 
 * **204** - no error
@@ -360,7 +362,7 @@ Deletes all the information persisted for a given job ID. Note that this will **
 One of the key features that Dray provides is the ability to marshal data between the different steps (containers) in a job. By default, Dray will capture anything written to the container's *stdout* stream and automatically feed that into the next container's *stdin* stream. However, different output channels can be configured on a step-by-step basis.
 
 ### stderr
-It is common for tasks/services running in Docker containers to use the *stdout* stream for log output. If you're already using *stdout* for log output and want to use a different channel for data that should be passed to the next job step you can opt to use the *stderr* stream instead. 
+It is common for tasks/services running in Docker containers to use the *stdout* stream for log output. If you're already using *stdout* for log output and want to use a different channel for data that should be passed to the next job step you can opt to use the *stderr* stream instead.
 
 To configure Dray to monitor *stderr* for a particular job step you simply use the `output` field for that step in the job description:
 
@@ -413,7 +415,7 @@ There is one other bit of configuration that is also required when using a custo
       -v /var/run/docker.sock:/var/run/docker.sock \
       -p 3000:3000 \
       centurylink/dray:latest
-      
+
 Note the addition of the `-v /tmp:/tmp` flag in the Docker `run` command above. This setting is required **only** if you intend to use custom files as a data-passing mechanism and can be omitted otherwise.
 
 ## Building

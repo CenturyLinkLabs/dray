@@ -48,6 +48,8 @@ type Job struct {
 	Environment    Environment `json:"environment,omitempty"`
 	StepsCompleted int         `json:"stepsCompleted,omitempty"`
 	Status         string      `json:"status,omitempty"`
+	CreatedAt      string      `json:"createdAt,omitempty"`
+	FinishedIn     float64     `json:"finishedIn,omitempty"`
 }
 
 // CurrentStep returns the first JobStep from the list which has not yet
