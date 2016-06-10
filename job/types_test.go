@@ -18,16 +18,27 @@ func TestJobCurrentStep(t *testing.T) {
 func TestJobCurrentStepEnvironment(t *testing.T) {
 	var1 := EnvVar{Variable: "foo", Value: "bar"}
 	var2 := EnvVar{Variable: "fiz", Value: "bin"}
+
 	job := Job{
+		Name:           "foo",
 		Environment:    Environment{var1},
-		Steps:          []JobStep{{Environment: Environment{var2}}},
+		Steps:          []JobStep{{Environment: Environment{var2}, Name: "bar"}},
 		StepsCompleted: 0,
 	}
 
+	var3 := EnvVar{Variable: "DRAY_JOB_ID", Value: job.ID}
+	var4 := EnvVar{Variable: "DRAY_JOB_NAME", Value: "foo"}
+	var5 := EnvVar{Variable: "DRAY_CURRENT_STEP_INDEX", Value: "0"}
+	var6 := EnvVar{Variable: "DRAY_CURRENT_STEP_NAME", Value: "bar"}
+
 	env := job.currentStepEnvironment()
-	assert.Len(t, env, 2)
+	assert.Len(t, env, 6)
 	assert.Contains(t, env, var1)
 	assert.Contains(t, env, var2)
+	assert.Contains(t, env, var3)
+	assert.Contains(t, env, var4)
+	assert.Contains(t, env, var5)
+	assert.Contains(t, env, var6)
 }
 
 func TestJobStepUsesStdOutPipe(t *testing.T) {

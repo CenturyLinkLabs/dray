@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -59,11 +60,23 @@ func (j Job) currentStep() *JobStep {
 	return &j.Steps[j.StepsCompleted]
 }
 
+// DefaultStepEnvironment returns Dray's system environment variables including
+// current job ID, name and step index
+func (j Job) defaultStepEnvironment() Environment {
+	return Environment{
+		EnvVar{Variable: "DRAY_JOB_ID", Value: j.ID},
+		EnvVar{Variable: "DRAY_JOB_NAME", Value: j.Name},
+		EnvVar{Variable: "DRAY_CURRENT_STEP_INDEX", Value: strconv.Itoa(j.StepsCompleted)},
+		EnvVar{Variable: "DRAY_CURRENT_STEP_NAME", Value: j.currentStep().Name},
+	}
+}
+
 // CurrentStepEnvironment returns the complete environment for the current job
 // step. The environment is constructed by merging the global, job-wide
-// environment settings with the environment settings for the current step.
+// environment settings with the default and current step environment settings.
 func (j Job) currentStepEnvironment() Environment {
-	return append(j.Environment, j.currentStep().Environment...)
+	defaultEnvironment := append(j.Environment, j.defaultStepEnvironment()...)
+	return append(defaultEnvironment, j.currentStep().Environment...)
 }
 
 // JobStep represents one of the individual steps in a Dray Job. A job step is
