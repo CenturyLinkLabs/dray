@@ -69,6 +69,8 @@ func (r *redisJobRepository) Get(jobID string) (*Job, error) {
 
 	job.StepsCompleted, _ = strconv.Atoi(status["completedSteps"])
 	job.Status = status["status"]
+	job.CreatedAt = status["createdAt"]
+	job.FinishedIn, _ = strconv.ParseFloat(status["finishedIn"], 64)
 	return &job, nil
 }
 
