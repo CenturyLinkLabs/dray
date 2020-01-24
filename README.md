@@ -32,6 +32,10 @@ list of Docker containers with each container encapsulating a step in the workfl
 will ensure that each step of the workflow (each container) is started in the correct 
 order and handles the work of marshaling data between the different steps.
 
+## NOTE
+
+This repo is no longer being maintained. Users are welcome to fork it, but we make no warranty of its functionality.
+
 ## Overview
 Dray is a Go application that provides a RESTful API for managing jobs. A job is simply a list of Docker containers to be executed in sequence that is posted to Dray as a JSON document:
 
