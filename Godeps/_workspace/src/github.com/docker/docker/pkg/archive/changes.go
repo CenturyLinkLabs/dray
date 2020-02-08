@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/docker/docker/vendor/src/code.google.com/p/go/src/pkg/archive/tar"
+	"src/code.google.com/p/go/src/pkg/archive/tar"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/pools"

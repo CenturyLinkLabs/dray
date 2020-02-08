@@ -103,6 +103,8 @@ func (suite *JobManagerTestSuite) TestExecuteSuccess() {
 	suite.r.On("Update", suite.job.ID, "status", "running").Return(nil)
 	suite.r.On("Update", suite.job.ID, "completedSteps", "1").Return(nil)
 	suite.r.On("Update", suite.job.ID, "status", "complete").Return(nil)
+	suite.r.On("Update", suite.job.ID, "createdAt", mock.Anything).Return(nil)
+	suite.r.On("Update", suite.job.ID, "finishedIn", mock.Anything).Return(nil)
 
 	resultErr := suite.jm.Execute(suite.job)
 
@@ -114,6 +116,8 @@ func (suite *JobManagerTestSuite) TestExecuteExecutorStartError() {
 
 	suite.r.On("Update", suite.job.ID, "status", "running").Return(nil)
 	suite.r.On("Update", suite.job.ID, "status", "error").Return(nil)
+	suite.r.On("Update", suite.job.ID, "createdAt", mock.Anything).Return(nil)
+	suite.r.On("Update", suite.job.ID, "finishedIn", mock.Anything).Return(nil)
 
 	resultErr := suite.jm.Execute(suite.job)
 
@@ -129,6 +133,8 @@ func (suite *JobManagerTestSuite) TestExecuteContainerInspectError() {
 
 	suite.r.On("Update", suite.job.ID, "status", "running").Return(nil)
 	suite.r.On("Update", suite.job.ID, "status", "error").Return(nil)
+	suite.r.On("Update", suite.job.ID, "createdAt", mock.Anything).Return(nil)
+	suite.r.On("Update", suite.job.ID, "finishedIn", mock.Anything).Return(nil)
 
 	resultErr := suite.jm.Execute(suite.job)
 
@@ -148,6 +154,8 @@ func (suite *JobManagerTestSuite) TestExecuteOutputLogging() {
 	suite.r.On("Update", suite.job.ID, "completedSteps", "1").Return(nil)
 	suite.r.On("AppendLogLine", suite.job.ID, suite.e.output).Return(nil)
 	suite.r.On("Update", suite.job.ID, "status", "complete").Return(nil)
+	suite.r.On("Update", suite.job.ID, "createdAt", mock.Anything).Return(nil)
+	suite.r.On("Update", suite.job.ID, "finishedIn", mock.Anything).Return(nil)
 
 	resultErr := suite.jm.Execute(suite.job)
 
